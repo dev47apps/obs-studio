@@ -1208,7 +1208,11 @@ retryScene:
 		api->on_event(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
 	}
 }
-
+#if DROIDCAM_OVERRIDE
+void OBSBasic::SaveService() {}
+bool OBSBasic::LoadService() { return false; }
+bool OBSBasic::InitService() { return false; }
+#else
 #define SERVICE_PATH "service.json"
 
 void OBSBasic::SaveService()
@@ -1283,7 +1287,7 @@ bool OBSBasic::InitService()
 
 	return true;
 }
-
+#endif
 static const double scaled_vals[] = {1.0,         1.25, (1.0 / 0.75), 1.5,
 				     (1.0 / 0.6), 1.75, 2.0,          2.25,
 				     2.5,         2.75, 3.0,          0.0};
@@ -1838,8 +1842,10 @@ void OBSBasic::OBSInit()
 	ResetOutputs();
 	CreateHotkeys();
 
+#if DROIDCAM_OVERRIDE==0
 	if (!InitService())
 		throw "Failed to initialize service";
+#endif
 
 	InitPrimitives();
 
