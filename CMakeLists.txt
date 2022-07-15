@@ -95,7 +95,8 @@ if(WIN32)
 	set(OBS_COMMENTS "Free and open source software for video recording and live streaming")
 	set(OBS_LEGAL_COPYRIGHT "(C) Hugh Bailey")
 	set(MODULE_DESCRIPTION "OBS Studio")
-	configure_file(UI/obs.rc.in ${PROJECT_BINARY_DIR}/obs.rc)
+	#d47
+	configure_file(UI/droidcam-obs.rc.in ${PROJECT_BINARY_DIR}/obs.rc)
 endif()
 
 if(MSVC AND NOT EXISTS "${CMAKE_BINARY_DIR}/ALL_BUILD.vcxproj.user")
@@ -190,6 +191,9 @@ if(MSVC)
 		set(CMAKE_${t}_LINKER_FLAGS_DEBUG "${CMAKE_${t}_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
 		set(CMAKE_${t}_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_${t}_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO /OPT:ICF")
 	endforeach()
+
+	#d47
+	add_link_options(/DEBUG:NONE)
 else()
 	if(MINGW)
 		set(CMAKE_WIDL "widl" CACHE STRING "wine IDL header file generation program")
@@ -274,7 +278,7 @@ if(NOT INSTALLER_RUN)
 
 	if(WIN32)
 		add_subdirectory(libobs-d3d11)
-		add_subdirectory(libobs-winrt)
+		#d47 add_subdirectory(libobs-winrt)
 	endif()
 
 	add_subdirectory(libobs-opengl)
