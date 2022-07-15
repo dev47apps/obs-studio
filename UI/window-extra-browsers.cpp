@@ -3,6 +3,7 @@
 #include "window-basic-main.hpp"
 #include "qt-wrappers.hpp"
 
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QHBoxLayout>
 
