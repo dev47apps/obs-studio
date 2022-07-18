@@ -6,6 +6,8 @@
 #include "window-basic-main.hpp"
 #include "window-basic-main-outputs.hpp"
 
+#include "ui-config.h"
+
 using namespace std;
 
 extern bool EncoderAvailable(const char *encoder);
@@ -203,9 +205,15 @@ static bool CreateAACEncoder(OBSEncoder &res, string &id, int bitrate,
 inline BasicOutputHandler::BasicOutputHandler(OBSBasic *main_) : main(main_)
 {
 	if (main->vcamEnabled) {
+#if DROIDCAM_OVERRIDE
+		virtualCam = obs_output_create("droidcam_virtual_output",
+						"droidcam_virtual_output", nullptr,
+						nullptr);
+#else
 		virtualCam = obs_output_create("virtualcam_output",
 					       "virtualcam_output", nullptr,
 					       nullptr);
+#endif
 		obs_output_release(virtualCam);
 
 		signal_handler_t *signal =

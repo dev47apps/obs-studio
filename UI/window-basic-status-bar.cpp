@@ -7,6 +7,8 @@
 #include "window-basic-status-bar.hpp"
 #include "window-basic-main-outputs.hpp"
 
+#include "ui-config.h"
+
 OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 	: QStatusBar(parent),
 	  delayInfo(new QLabel),
@@ -91,11 +93,18 @@ OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 	grayPixmap.fill(QColor(72, 72, 72));
 	redPixmap.fill(QColor(255, 0, 0));
 
+#if DROIDCAM_OVERRIDE
+	streamIcon->setVisible(false);
+	streamTime->setVisible(false);
+	recordIcon->setVisible(false);
+	recordTime->setVisible(false);
+#endif
 	statusSquare->setPixmap(transparentPixmap);
 }
 
 void OBSBasicStatusBar::Activate()
 {
+#if DROIDCAM_OVERRIDE==0
 	if (!active) {
 		refreshTimer = new QTimer(this);
 		connect(refreshTimer, SIGNAL(timeout()), this,
@@ -125,10 +134,12 @@ void OBSBasicStatusBar::Activate()
 	if (recordOutput) {
 		recordIcon->setPixmap(recordingActivePixmap);
 	}
+#endif
 }
 
 void OBSBasicStatusBar::Deactivate()
 {
+#if DROIDCAM_OVERRIDE==0
 	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
 	if (!main)
 		return;
@@ -161,6 +172,7 @@ void OBSBasicStatusBar::Deactivate()
 
 		statusSquare->setPixmap(transparentPixmap);
 	}
+#endif
 }
 
 void OBSBasicStatusBar::UpdateDelayMsg()
