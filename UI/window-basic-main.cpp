@@ -1188,7 +1188,10 @@ retryScene:
 		opt_start_replaybuffer = false;
 	}
 
+
 	if (opt_start_virtualcam) {
+		blog(LOG_INFO,
+			"Starting virtualcam due to command line parameter");
 		QMetaObject::invokeMethod(this, "StartVirtualCam",
 					  Qt::QueuedConnection);
 		opt_start_virtualcam = false;
@@ -4583,7 +4586,29 @@ void OBSBasic::closeEvent(QCloseEvent *event)
 				  "geometry",
 				  saveGeometry().toBase64().constData());
 
+#if DROIDCAM_OVERRIDE
+	if (event->spontaneous() && isVisible()) {
+		SetShowing(false);
+		event->ignore();
+		restart = false;
+
+		bool shown = config_get_bool(App()->GlobalConfig(), "General",
+			"CloseToTaskbarNoticeShown");
+
+		if (!shown) {
+			config_set_bool(App()->GlobalConfig(), "General",
+				"CloseToTaskbarNoticeShown", true);
+			config_save_safe(App()->GlobalConfig(), "tmp", nullptr);
+
+			SysTrayNotify(QTStr("TaskbarHint.DroidCam"),
+				QSystemTrayIcon::Information);
+		}
+		return;
+	}
+	else if (!ui->profileMenu->isEnabled()) { // see OnActivate / OnDeactivate
+#else
 	if (outputHandler && outputHandler->Active()) {
+#endif
 		SetShowing(true);
 
 		QMessageBox::StandardButton button = OBSMessageBox::question(
@@ -4595,6 +4620,8 @@ void OBSBasic::closeEvent(QCloseEvent *event)
 			restart = false;
 			return;
 		}
+
+		OnDeactivate();
 	}
 
 	QWidget::closeEvent(event);
@@ -4728,6 +4755,10 @@ void OBSBasic::on_action_Settings_triggered()
 
 	settings_already_executing = true;
 
+#if DROIDCAM_OVERRIDE
+	StopVirtualCam();
+#endif
+
 	{
 		OBSBasicSettings settings(this);
 		settings.exec();
@@ -4746,6 +4777,11 @@ void OBSBasic::on_action_Settings_triggered()
 		else
 			restart = false;
 	}
+
+#if DROIDCAM_OVERRIDE
+	if (!restart)
+		StartVirtualCam();
+#endif
 }
 
 static inline void AddMissingFiles(void *data, obs_source_t *source)
@@ -8861,6 +8897,20 @@ void OBSBasic::SystemTrayInit()
 	trayMenu = new QMenu;
 	previewProjector = new QMenu(QTStr("PreviewProjector"));
 	studioProgramProjector = new QMenu(QTStr("StudioProgramProjector"));
+#if DROIDCAM_OVERRIDE
+	trayIcon->setToolTip("DroidCam");
+	trayMenu->addAction(showHide);
+	trayMenu->addSeparator();
+	trayMenu->addAction(exit);
+	trayIcon->setContextMenu(trayMenu);
+	trayIcon->show();
+
+	connect(trayIcon.data(),
+		SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
+		SLOT(IconActivated(QSystemTrayIcon::ActivationReason)));
+	connect(showHide, SIGNAL(triggered()), this, SLOT(ToggleShowHide()));
+	connect(exit, SIGNAL(triggered()), this, SLOT(close()));
+#else
 	AddProjectorMenuMonitors(previewProjector, this,
 				 SLOT(OpenPreviewProjector()));
 	AddProjectorMenuMonitors(studioProgramProjector, this,
@@ -8894,6 +8944,7 @@ void OBSBasic::SystemTrayInit()
 	connect(sysTrayVirtualCam.data(), &QAction::triggered, this,
 		&OBSBasic::VCamButtonClicked);
 	connect(exit, SIGNAL(triggered()), this, SLOT(close()));
+#endif
 }
 
 void OBSBasic::IconActivated(QSystemTrayIcon::ActivationReason reason)

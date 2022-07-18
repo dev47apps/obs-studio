@@ -1700,6 +1700,18 @@ void SourceTree::AddGroup()
 	GetStm()->AddGroup();
 }
 
+#if DROIDCAM_OVERRIDE
+
+void SourceTree::UpdateNoSourcesMessage() {}
+
+void SourceTree::paintEvent(QPaintEvent *event)
+{
+	SourceTreeModel *stm = GetStm();
+	if (stm && stm->items.count())
+		QListView::paintEvent(event);
+}
+
+#else
 void SourceTree::UpdateNoSourcesMessage()
 {
 	std::string darkPath;
@@ -1751,3 +1763,4 @@ void SourceTree::paintEvent(QPaintEvent *event)
 		QListView::paintEvent(event);
 	}
 }
+#endif
