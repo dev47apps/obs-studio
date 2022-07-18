@@ -212,6 +212,10 @@ extern void RegisterRestreamAuth();
 #if YOUTUBE_ENABLED
 extern void RegisterYoutubeAuth();
 #endif
+#if DROIDCAM_OVERRIDE
+extern void CleanMenuItems(QMenu *menu, bool recursive = false);
+extern bool reset_app;
+#endif
 
 OBSBasic::OBSBasic(QWidget *parent)
 	: OBSMainWindow(parent), undo_s(ui), ui(new Ui::OBSBasic)
@@ -1302,6 +1306,11 @@ extern void CheckExistingCookieId();
 
 bool OBSBasic::InitBasicConfigDefaults()
 {
+#if DROIDCAM_OVERRIDE
+	/* use 1280x720 as initial resolution */
+	uint32_t cx = 1280;
+	uint32_t cy = 720;
+#else
 	QList<QScreen *> screens = QGuiApplication::screens();
 
 	if (!screens.size()) {
@@ -1328,6 +1337,7 @@ bool OBSBasic::InitBasicConfigDefaults()
 		cx = 1920;
 		cy = 1080;
 	}
+#endif
 
 	bool changed = false;
 
@@ -1925,6 +1935,34 @@ void OBSBasic::OBSInit()
 
 	RefreshSceneCollections();
 	RefreshProfiles();
+#if DROIDCAM_OVERRIDE
+	CleanMenuItems(ui->menu_File);
+	CleanMenuItems(ui->viewMenu);
+	CleanMenuItems(ui->menuBasic_MainMenu_Help);
+	ui->menuBasic_MainMenu_Edit->menuAction()->setVisible(false);
+	ui->menuTools->menuAction()->setVisible(false);
+	ui->profileMenu->menuAction()->setVisible(false);
+	ui->sceneCollectionMenu->menuAction()->setVisible(false);
+
+	ui->viewMenu->removeAction(ui->toggleMixer);
+	ui->viewMenu->insertAction(ui->toggleStatusBar, ui->toggleMixer);
+	ui->viewMenu->addSeparator();
+	ui->viewMenu->addAction(QTStr("Basic.MainMenu.View.Docks.ResetUI"), this,
+		SLOT(on_resetUI_triggered()));
+
+	QAction *reset_action = new QAction(QTStr("ResetClient"), this);
+	connect(reset_action, &QAction::triggered, this, [this]() {
+		QMessageBox::StandardButton button = QMessageBox::question(
+			this, "DroidCam", QTStr("NeedsRestart"));
+
+		if (button == QMessageBox::No)
+			return;
+
+		reset_app = true;
+		close();
+	});
+	ui->menuBasic_MainMenu_Help->insertAction(ui->actionCheckForUpdates, reset_action);
+#endif
 	disableSaving--;
 
 	auto addDisplay = [this](OBSQTDisplay *window) {
@@ -2056,6 +2094,7 @@ void OBSBasic::OBSInit()
 	/* ----------------------- */
 	/* Add multiview menu      */
 
+#if DROIDCAM_OVERRIDE==0
 	ui->viewMenu->addSeparator();
 
 	multiviewProjectorMenu = new QMenu(QTStr("MultiviewProjector"));
@@ -2067,6 +2106,7 @@ void OBSBasic::OBSInit()
 	ui->viewMenu->addAction(QTStr("MultiviewWindowed"), this,
 				SLOT(OpenMultiviewWindow()));
 
+#endif
 	ui->sources->UpdateIcons();
 
 #if !defined(_WIN32)
@@ -8523,13 +8563,20 @@ void OBSBasic::on_resetUI_triggered()
 	}
 
 	if (extraDocks.size()) {
+#if DROIDCAM_OVERRIDE
+		QMessageBox::StandardButton button = QMessageBox::question(
+			this, "DroidCam",
+			QTStr("ResetUIWarning.Title"));
+#else
 		QMessageBox::StandardButton button = QMessageBox::question(
 			this, QTStr("ResetUIWarning.Title"),
 			QTStr("ResetUIWarning.Text"));
+#endif
 
 		if (button == QMessageBox::No)
 			return;
 	}
+
 
 	/* undock/hide/center extra docks */
 	for (int i = extraDocks.size() - 1; i >= 0; i--) {
@@ -8561,6 +8608,16 @@ void OBSBasic::on_resetUI_triggered()
 
 	QList<int> sizes{cx22_5, cx22_5, mixerSize, cx5, cx5};
 
+#if DROIDCAM_OVERRIDE
+	ui->sourcesDock->setVisible(true);
+	ui->mixerDock->setVisible(true);
+	ui->scenesDock->setVisible(false);
+	ui->transitionsDock->setVisible(false);
+	ui->controlsDock->setVisible(false);
+	statsDock->setVisible(false);
+	statsDock->setFloating(true);
+	on_toggleListboxToolbars_toggled(false);
+#else
 	ui->scenesDock->setVisible(true);
 	ui->sourcesDock->setVisible(true);
 	ui->mixerDock->setVisible(true);
@@ -8568,6 +8625,7 @@ void OBSBasic::on_resetUI_triggered()
 	ui->controlsDock->setVisible(true);
 	statsDock->setVisible(false);
 	statsDock->setFloating(true);
+#endif
 
 	resizeDocks(docks, {cy, cy, cy, cy, cy}, Qt::Vertical);
 	resizeDocks(docks, sizes, Qt::Horizontal);
@@ -9295,10 +9353,12 @@ SourceTreeItem *OBSBasic::GetItemWidgetFromSceneItem(obs_sceneitem_t *sceneItem)
 
 void OBSBasic::on_autoConfigure_triggered()
 {
+#if DROIDCAM_OVERRIDE==0
 	AutoConfig test(this);
 	test.setModal(true);
 	test.show();
 	test.exec();
+#endif
 }
 
 void OBSBasic::on_stats_triggered()

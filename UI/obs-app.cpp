@@ -96,6 +96,7 @@ string opt_starting_profile;
 string opt_starting_scene;
 
 bool restart = false;
+bool reset_app = false;
 
 QPointer<OBSLogViewer> obsLogViewer;
 
@@ -2179,9 +2180,28 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 		OBSErrorBox(nullptr, "%s", error);
 	}
 
+#if DROIDCAM_OVERRIDE
+	// TODO: glob the directory and clean up properly
+	if (reset_app) {
+		char path[512];
+		if (GetConfigPath(path, sizeof(path), "obs-studio/global.ini") > 0) {
+			blog(LOG_WARNING, "Reset Flag is set. Remove %s with (%d)",
+				path, os_unlink(path));
+			restart = true;
+		}
+
+		path[0] = 0;
+		if (GetConfigPath(path, sizeof(path), "obs-studio/basic/profiles/Untitled/basic.ini") > 0) {
+			blog(LOG_WARNING, "Reset Flag is set. Remove %s with (%d)",
+				path, os_unlink(path));
+			restart = true;
+		}
+	}
+#endif
 	if (restart)
 		QProcess::startDetached(qApp->arguments()[0],
 					qApp->arguments());
+
 #ifdef _WIN32
 	if (hSingleInstSem != NULL)
 		CloseHandle(hSingleInstSem);
