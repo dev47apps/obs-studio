@@ -431,6 +431,12 @@ qt5_wrap_ui(obs_UI_HEADERS ${obs_UI})
 qt5_add_resources(obs_QRC_SOURCES ${obs_QRC})
 
 #d47
+if(DROIDCAM_OVERRIDE)
+	list(APPEND obs_SOURCES
+		window-basic-main-droidcam-overrides.cpp
+		)
+endif()
+
 add_executable(obs WIN32
 	droidcam-obs.manifest
 	${obs_SOURCES}
