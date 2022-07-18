@@ -212,6 +212,9 @@ extern void RegisterRestreamAuth();
 #if YOUTUBE_ENABLED
 extern void RegisterYoutubeAuth();
 #endif
+#if DROIDCAM_OVERRIDE
+extern void CleanMenuItems(QMenu *menu, bool recursive = false);
+#endif
 
 OBSBasic::OBSBasic(QWidget *parent)
 	: OBSMainWindow(parent), undo_s(ui), ui(new Ui::OBSBasic)
@@ -1318,6 +1321,12 @@ bool OBSBasic::InitBasicConfigDefaults()
 	cx *= devicePixelRatioF();
 	cy *= devicePixelRatioF();
 
+#if DROIDCAM_OVERRIDE
+	/* use 640x480 as initial resolution */
+	if ((cx * cy) > (640 * 480)) {
+		cx = 640; cy = 480;
+	}
+#else
 	bool oldResolutionDefaults = config_get_bool(
 		App()->GlobalConfig(), "General", "Pre19Defaults");
 
@@ -1328,6 +1337,7 @@ bool OBSBasic::InitBasicConfigDefaults()
 		cx = 1920;
 		cy = 1080;
 	}
+#endif
 
 	bool changed = false;
 
@@ -1539,6 +1549,12 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_double(basicConfig, "Audio", "MeterDecayRate",
 				  VOLUME_METER_DECAY_FAST);
 	config_set_default_uint(basicConfig, "Audio", "PeakMeterType", 0);
+
+#if DROIDCAM_OVERRIDE
+	config_set_default_string(basicConfig, "Video", "ColorFormat", "I420");
+	config_set_default_string(basicConfig, "Video", "ScaleType", "bilinear");
+	config_set_default_uint(basicConfig, "Audio", "SampleRate", 44100);
+#endif
 
 	CheckExistingCookieId();
 
@@ -1925,6 +1941,15 @@ void OBSBasic::OBSInit()
 
 	RefreshSceneCollections();
 	RefreshProfiles();
+#if DROIDCAM_OVERRIDE
+	CleanMenuItems(ui->menu_File);
+	CleanMenuItems(ui->viewMenu);
+	CleanMenuItems(ui->menuBasic_MainMenu_Help);
+	ui->menuBasic_MainMenu_Edit->menuAction()->setVisible(false);
+	ui->menuTools->menuAction()->setVisible(false);
+	ui->profileMenu->menuAction()->setVisible(false);
+	ui->sceneCollectionMenu->menuAction()->setVisible(false);
+#endif
 	disableSaving--;
 
 	auto addDisplay = [this](OBSQTDisplay *window) {
@@ -2056,6 +2081,7 @@ void OBSBasic::OBSInit()
 	/* ----------------------- */
 	/* Add multiview menu      */
 
+#if DROIDCAM_OVERRIDE==0
 	ui->viewMenu->addSeparator();
 
 	multiviewProjectorMenu = new QMenu(QTStr("MultiviewProjector"));
@@ -2067,6 +2093,7 @@ void OBSBasic::OBSInit()
 	ui->viewMenu->addAction(QTStr("MultiviewWindowed"), this,
 				SLOT(OpenMultiviewWindow()));
 
+#endif
 	ui->sources->UpdateIcons();
 
 #if !defined(_WIN32)
@@ -8561,6 +8588,16 @@ void OBSBasic::on_resetUI_triggered()
 
 	QList<int> sizes{cx22_5, cx22_5, mixerSize, cx5, cx5};
 
+#if DROIDCAM_OVERRIDE
+	ui->sourcesDock->setVisible(true);
+	ui->mixerDock->setVisible(true);
+	ui->scenesDock->setVisible(false);
+	ui->transitionsDock->setVisible(false);
+	ui->controlsDock->setVisible(false);
+	statsDock->setVisible(false);
+	statsDock->setFloating(true);
+	on_toggleListboxToolbars_toggled(false);
+#else
 	ui->scenesDock->setVisible(true);
 	ui->sourcesDock->setVisible(true);
 	ui->mixerDock->setVisible(true);
@@ -8568,6 +8605,7 @@ void OBSBasic::on_resetUI_triggered()
 	ui->controlsDock->setVisible(true);
 	statsDock->setVisible(false);
 	statsDock->setFloating(true);
+#endif
 
 	resizeDocks(docks, {cy, cy, cy, cy, cy}, Qt::Vertical);
 	resizeDocks(docks, sizes, Qt::Horizontal);
@@ -9295,10 +9333,12 @@ SourceTreeItem *OBSBasic::GetItemWidgetFromSceneItem(obs_sceneitem_t *sceneItem)
 
 void OBSBasic::on_autoConfigure_triggered()
 {
+#if DROIDCAM_OVERRIDE==0
 	AutoConfig test(this);
 	test.setModal(true);
 	test.show();
 	test.exec();
+#endif
 }
 
 void OBSBasic::on_stats_triggered()
