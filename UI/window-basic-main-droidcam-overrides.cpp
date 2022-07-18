@@ -1,6 +1,26 @@
 #include "obs-app.hpp"
-
+#include "window-basic-main-droidcam-overrides.hpp"
 #include <QMenu>
+
+#ifdef _WIN32
+#include <windows.h>
+
+bool OBSBasicDroidCam::nativeEvent(const QByteArray &eventType, void *message, long *result) {
+	(void)eventType;
+	(void)result;
+
+	MSG* msg = reinterpret_cast<MSG*>(message);
+	if (msg->message == WM_SHOWWINDOW) {
+
+		DWORD sw = LOWORD(msg->wParam);
+		if ((sw == SW_SHOWNORMAL || sw == SW_SHOW || sw == SW_RESTORE) && !isVisible()) {
+			QMetaObject::invokeMethod(this, "SetShowing", Q_ARG(bool, true));
+		}
+	}
+
+	return false;
+}
+#endif
 
 void CleanMenuItems(QMenu *menu, bool recursive) {
 	QAction *prevSeperator = nullptr;
