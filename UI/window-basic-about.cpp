@@ -1,5 +1,45 @@
 #include "window-basic-about.hpp"
 #include "window-basic-main.hpp"
+
+#if DROIDCAM_OVERRIDE
+
+OBSAbout::OBSAbout(QWidget *parent) : QDialog(parent), ui(new Ui::OBSAbout)
+{
+	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+	ui->setupUi(this);
+	ui->name_label->setStyleSheet("font-size: 14pt; margin-bottom: 20px;");
+	ui->credits_label->setStyleSheet("margin-bottom: 20px;");
+	ui->credits_label->setStyleSheet("margin-bottom: 20px;");
+
+	QString ver = "DroidCam Client ";
+#ifdef HAVE_OBSCONFIG_H
+	ver += OBS_VERSION;
+#else
+	ver += LIBOBS_API_MAJOR_VER + "." + LIBOBS_API_MINOR_VER + "." +
+		LIBOBS_API_PATCH_VER;
+#endif
+	ver += " (beta)";
+	ui->name_label->setText(ver);
+
+	ui->visitDroidcam_label->setText("Visit&nbsp;<a href='https://beta.droidcam.app'>droidcam.app</a>");
+	ui->visitDroidcam_label->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	ui->visitDroidcam_label->setOpenExternalLinks(true);
+
+	ui->visitOBS_label->setText("Visit&nbsp;<a href='https://obsproject.com'>obsproject.com</a>");
+	ui->visitOBS_label->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	ui->visitOBS_label->setOpenExternalLinks(true);
+
+	ui->visitGithub_label->setText("GitHub:&nbsp;<a href='https://github.com/dev47apps'>github.com/dev47apps</a>");
+	ui->visitGithub_label->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	ui->visitGithub_label->setOpenExternalLinks(true);
+}
+
+void OBSAbout::ShowAbout() {}
+void OBSAbout::ShowAuthors() {}
+void OBSAbout::ShowLicense() {}
+
+#else
+
 #include "qt-wrappers.hpp"
 #include "remote-text.hpp"
 #include <util/util.hpp>
@@ -168,3 +208,4 @@ void OBSAbout::ShowLicense()
 
 	ui->textBrowser->setPlainText(QT_UTF8(text));
 }
+#endif
