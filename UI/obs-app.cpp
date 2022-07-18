@@ -42,7 +42,7 @@
 #include "obs-app.hpp"
 #include "log-viewer.hpp"
 #include "slider-ignorewheel.hpp"
-#include "window-basic-main-droidcam-overrides.hpp"
+#include "window-basic-droidcam-overrides.hpp"
 #include "window-basic-settings.hpp"
 #include "crash-report.hpp"
 #include "platform.hpp"

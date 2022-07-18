@@ -10,11 +10,11 @@ BEGIN
       VALUE "CompanyName", "DEV47APPS"
       VALUE "FileDescription", "DroidCam Client"
       VALUE "FileVersion", "${UI_VERSION}"
-      VALUE "InternalName", "droidcam-obs"
+      VALUE "InternalName", "droidcam-obs-client"
       VALUE "OriginalFilename", "obs"
       VALUE "ProductName", "DroidCam"
       VALUE "ProductVersion", "7"
-      VALUE "LegalCopyright", "2022, DEV47APPS"
+      VALUE "LegalCopyright", "2024, DEV47APPS"
     END
   END
 

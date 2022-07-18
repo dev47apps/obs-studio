@@ -427,15 +427,35 @@ if(YOUTUBE_ENABLED)
 		)
 endif()
 
-qt5_wrap_ui(obs_UI_HEADERS ${obs_UI})
-qt5_add_resources(obs_QRC_SOURCES ${obs_QRC})
-
 #d47
 if(DROIDCAM_OVERRIDE)
-	list(APPEND obs_SOURCES
-		window-basic-main-droidcam-overrides.cpp
+	list(REMOVE_ITEM obs_UI
+		forms/OBSAbout.ui
 		)
+
+	list(REMOVE_ITEM obs_SOURCES
+		window-basic-settings-stream.cpp
+		)
+
+	list(APPEND obs_SOURCES
+		window-basic-droidcam-overrides.cpp
+		)
+	list(APPEND obs_HEADERS
+		window-basic-droidcam-overrides.hpp
+		)
+	list(APPEND obs_UI
+		forms/DroidCamAbout.ui
+		)
+
+	if(NPDB)
+		message(STATUS "pdb files disabled")
+	else()
+		add_link_options(/DEBUG:FULL)
+	endif()
 endif()
+
+qt5_wrap_ui(obs_UI_HEADERS ${obs_UI})
+qt5_add_resources(obs_QRC_SOURCES ${obs_QRC})
 
 add_executable(obs WIN32
 	droidcam-obs.manifest
