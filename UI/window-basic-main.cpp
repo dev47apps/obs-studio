@@ -1416,7 +1416,7 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_string(basicConfig, "Output", "Mode", "Simple");
 
 	config_set_default_bool(basicConfig, "Stream1", "IgnoreRecommended",
-				false);
+				true);
 
 	config_set_default_string(basicConfig, "SimpleOutput", "FilePath",
 				  GetDefaultVideoSavePath().c_str());
@@ -1552,6 +1552,13 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_double(basicConfig, "Audio", "MeterDecayRate",
 				  VOLUME_METER_DECAY_FAST);
 	config_set_default_uint(basicConfig, "Audio", "PeakMeterType", 0);
+
+#if DROIDCAM_OVERRIDE
+	config_set_default_string(basicConfig, "Video", "ColorFormat", "I420");
+	config_set_default_string(basicConfig, "Video", "ScaleType", "bilinear");
+	config_set_default_string(basicConfig, "Video", "ColorRange", "Full");
+	config_set_default_uint(basicConfig, "Audio", "SampleRate", 44100);
+#endif
 
 	CheckExistingCookieId();
 

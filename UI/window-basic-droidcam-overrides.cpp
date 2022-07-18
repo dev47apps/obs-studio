@@ -1,5 +1,6 @@
 #include "obs-app.hpp"
-#include "window-basic-main-droidcam-overrides.hpp"
+#include "window-basic-settings.hpp"
+#include "window-basic-droidcam-overrides.hpp"
 #include <QMenu>
 
 #ifdef _WIN32
@@ -21,6 +22,10 @@ bool OBSBasicDroidCam::nativeEvent(const QByteArray &eventType, void *message, l
 	return false;
 }
 #endif
+
+void OBSBasicDroidCam::OBSInit() {
+	OBSBasic::OBSInit();
+}
 
 void CleanMenuItems(QMenu *menu, bool recursive) {
 	QAction *prevSeperator = nullptr;
@@ -70,3 +75,30 @@ void CleanMenuItems(QMenu *menu, bool recursive) {
 		action->setVisible(false);
 	}
 }
+
+inline bool OBSBasicSettings::IsCustomService() const { return true; }
+void OBSBasicSettings::InitStreamPage() {}
+void OBSBasicSettings::LoadStream1Settings() {}
+void OBSBasicSettings::SaveStream1Settings() {}
+void OBSBasicSettings::UpdateMoreInfoLink() {}
+void OBSBasicSettings::UpdateKeyLink() {}
+void OBSBasicSettings::LoadServices(bool) {}
+void OBSBasicSettings::UseStreamKeyAdvClicked() {}
+void OBSBasicSettings::on_service_currentIndexChanged(int) {}
+void OBSBasicSettings::UpdateServerList() {}
+void OBSBasicSettings::on_show_clicked() {}
+void OBSBasicSettings::on_authPwShow_clicked() {}
+OBSService OBSBasicSettings::SpawnTempService() { return nullptr; }
+void OBSBasicSettings::OnOAuthStreamKeyConnected() {}
+void OBSBasicSettings::OnAuthConnected() {}
+void OBSBasicSettings::on_connectAccount_clicked() {}
+void OBSBasicSettings::on_disconnectAccount_clicked() {}
+void OBSBasicSettings::on_useStreamKey_clicked() {}
+void OBSBasicSettings::on_useAuth_toggled() {}
+void OBSBasicSettings::UpdateVodTrackSetting() {}
+OBSService OBSBasicSettings::GetStream1Service() { return nullptr; }
+void OBSBasicSettings::UpdateServiceRecommendations() {}
+void OBSBasicSettings::DisplayEnforceWarning(bool) {}
+bool OBSBasicSettings::ResFPSValid(obs_service_resolution*,
+	size_t, int) { return true; }
+void OBSBasicSettings::UpdateResFPSLimits() {}
