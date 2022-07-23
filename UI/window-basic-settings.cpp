@@ -905,10 +905,63 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	channelIndex = ui->channelSetup->currentIndex();
 	sampleRateIndex = ui->sampleRate->currentIndex();
 
+#ifdef DROIDCAM_OVERRIDE
+	ui->listWidget->setRowHidden(1, true); // Stream
+	ui->listWidget->setRowHidden(2, true); // Output
+	ui->listWidget->setRowHidden(5, true); // Hotkeys
+	ui->enableAutoUpdates->setVisible(false);
+	ui->openStatsOnStartup->setVisible(false);
+
+	// General
+	ui->systemTrayEnabled->setVisible(false);
+	ui->groupBox_10->setVisible(false); // "Source Alignment"
+	ui->groupBox_11->setVisible(false); // "Studio Mode"
+	ui->groupBox_14->setVisible(false); // "Projectors"
+	ui->groupBox_16->setVisible(false); // "Output"
+	ui->groupBox_18->setVisible(false); // "Preview"
+	ui->groupBox_18->setVisible(false); // "Studio Mode"
+	ui->groupBox_19->setVisible(false); // "Importers"
+	ui->groupBoxMultiview->setVisible(false); // "Multiview"
+	ui->verticalLayout_20->addItem(new QSpacerItem(20, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
+
+	// Audio
+	ui->audioDevicesGroupBox->setVisible(false);
+	ui->audioHotkeysGroupBox->setVisible(false);
+	ui->label_15->setVisible(false);
+	ui->channelSetup->setVisible(false);
+
+	// Video
+	HookWidget(ui->baseResolution, COMBO_CHANGED, VIDEO_CHANGED);
+	ui->baseResolution->setEditable(false);
+	ui->outputResolution->setVisible(false);  // Output resolution
+	ui->scaledAspect->setVisible(false);
+	ui->outputResLabel->setVisible(false);
+
+	QHBoxLayout *stack = new QHBoxLayout(this);
+	stack->addWidget(ui->fpsCommon);
+
+	ui->fpsType->setVisible(false);
+	ui->fpsTypes->setVisible(false);
+	ui->formLayout_3->insertRow(3, new QLabel(QTStr("Basic.Settings.Video.FPS"), this), stack);
+
+	// Advanced
+	ui->groupBox_6->setVisible(false); // Adv Recording
+	ui->groupBox_5->setVisible(false); // Adv Stream
+	ui->groupBox_7->setVisible(false); // Auto reconnect
+	ui->sourcesGroup->setVisible(false); // Adv Sources
+	ui->groupBox_17->setVisible(false); // Adv Sources
+	ui->advancedMsg2->setVisible(false);
+	ui->dynBitrate->setVisible(false);
+	ui->enableNewSocketLoop->setVisible(false);
+	ui->enableLowLatencyMode->setVisible(false);
+	ui->verticalLayout_24->addItem(new QSpacerItem(20, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
+#else
+
 	QRegularExpression rx("\\d{1,5}x\\d{1,5}");
 	QValidator *validator = new QRegularExpressionValidator(rx, this);
 	ui->baseResolution->lineEdit()->setValidator(validator);
 	ui->outputResolution->lineEdit()->setValidator(validator);
+#endif
 
 	connect(ui->useStreamKeyAdv, SIGNAL(clicked()), this,
 		SLOT(UseStreamKeyAdvClicked()));
@@ -1567,6 +1620,26 @@ void OBSBasicSettings::LoadResolutionLists()
 
 	ui->baseResolution->clear();
 
+#if DROIDCAM_OVERRIDE
+
+	auto addRes = [this, cx, cy](uint32_t x, uint32_t y) {
+		QString res = ResString(x, y).c_str();
+		if (ui->baseResolution->findText(res) >= 0)
+			return;
+
+		ui->baseResolution->addItem(res);
+		if (cx == x && cy == y)
+			ui->baseResolution->setCurrentIndex(
+				ui->baseResolution->count() - 1);
+	};
+
+	addRes(640, 480);
+	addRes(1280, 720);
+	addRes(1920, 1080);
+
+	ui->outputResolution->setCurrentText(ResString(out_cx, out_cy).c_str());
+
+#else
 	auto addRes = [this](int cx, int cy) {
 		QString res = ResString(cx, cy).c_str();
 		if (ui->baseResolution->findText(res) == -1)
@@ -1598,6 +1671,7 @@ void OBSBasicSettings::LoadResolutionLists()
 
 	ui->outputResolution->lineEdit()->setText(outputResString.c_str());
 
+#endif
 	std::tuple<int, int> aspect = aspect_ratio(cx, cy);
 
 	ui->baseAspect->setText(
