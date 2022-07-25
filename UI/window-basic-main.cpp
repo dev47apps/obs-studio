@@ -213,6 +213,7 @@ extern void RegisterRestreamAuth();
 extern void RegisterYoutubeAuth();
 #endif
 #if DROIDCAM_OVERRIDE
+extern const char *DROIDCAM_OBS_ID;
 extern void CleanMenuItems(QMenu *menu, bool recursive = false);
 #endif
 
@@ -5714,6 +5715,18 @@ void OBSBasic::on_scenes_itemDoubleClicked(QListWidgetItem *witem)
 void OBSBasic::AddSource(const char *id)
 {
 	if (id && *id) {
+#if DROIDCAM_OVERRIDE
+		if (strcmp(id, DROIDCAM_OBS_ID) == 0) {
+			foreach(QAction *action, ui->menuTools->actions()) {
+				QString name = action->text();
+				if (name == QString::fromLocal8Bit("DroidCam")) {
+					action->trigger();
+					return;
+				}
+			}
+		}
+#endif
+
 		OBSBasicSourceSelect sourceSelect(this, id, undo_s);
 		sourceSelect.exec();
 		if (sourceSelect.newSource && strcmp(id, "group") != 0) {

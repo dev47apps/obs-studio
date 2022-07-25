@@ -49,6 +49,7 @@ private:
 	matrix4 itemToScreen;
 	matrix4 invGroupTransform;
 
+	gs_texture_t *add_device = nullptr;
 	gs_texture_t *overflow = nullptr;
 	gs_vertbuffer_t *rectFill = nullptr;
 
