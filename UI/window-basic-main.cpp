@@ -5634,6 +5634,18 @@ void OBSBasic::on_scenes_itemDoubleClicked(QListWidgetItem *witem)
 void OBSBasic::AddSource(const char *id)
 {
 	if (id && *id) {
+#if DROIDCAM_OVERRIDE
+		if (strcmp(id, "droidcam_obs") == 0) {
+			foreach(QAction *action, ui->menuTools->actions()) {
+				QString name = action->text();
+				if (name == QString::fromLocal8Bit("DroidCam")) {
+					action->trigger();
+					return;
+				}
+			}
+		}
+#endif
+
 		OBSBasicSourceSelect sourceSelect(this, id, undo_s);
 		sourceSelect.exec();
 		if (sourceSelect.newSource && strcmp(id, "group") != 0) {
