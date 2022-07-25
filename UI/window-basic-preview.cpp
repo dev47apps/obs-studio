@@ -13,6 +13,7 @@
 
 #define HANDLE_RADIUS 4.0f
 #define HANDLE_SEL_RADIUS (HANDLE_RADIUS * 1.5f)
+extern const char *DROIDCAM_OBS_ID;
 
 /* TODO: make C++ math classes and clean up code here later */
 
@@ -27,6 +28,8 @@ OBSBasicPreview::~OBSBasicPreview()
 {
 	obs_enter_graphics();
 
+	if (add_device)
+		gs_texture_destroy(add_device);
 	if (overflow)
 		gs_texture_destroy(overflow);
 	if (rectFill)
@@ -595,6 +598,8 @@ void OBSBasicPreview::UpdateCursor(uint32_t &flags)
 		setCursor(Qt::SizeVerCursor);
 }
 
+static int select_item_count;
+
 static bool select_one(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	obs_sceneitem_t *selectedItem =
@@ -604,6 +609,7 @@ static bool select_one(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 
 	obs_sceneitem_select(item, (selectedItem == item));
 
+	select_item_count++;
 	UNUSED_PARAMETER(scene);
 	return true;
 }
@@ -614,8 +620,14 @@ void OBSBasicPreview::DoSelect(const vec2 &pos)
 
 	OBSScene scene = main->GetCurrentScene();
 	OBSSceneItem item = GetItemAtPos(pos, true);
-
+	select_item_count = 0;
 	obs_scene_enum_items(scene, select_one, (obs_sceneitem_t *)item);
+
+#if DROIDCAM_OVERRIDE
+	if (select_item_count == 0 && item == NULL) {
+		main->AddSource(DROIDCAM_OBS_ID);
+	}
+#endif
 }
 
 void OBSBasicPreview::DoCtrlSelect(const vec2 &pos)
@@ -1631,9 +1643,12 @@ static inline bool crop_enabled(const obs_sceneitem_crop *crop)
 	       crop->bottom > 0;
 }
 
+volatile static int overflow_item_count;
+
 bool OBSBasicPreview::DrawSelectedOverflow(obs_scene_t *scene,
 					   obs_sceneitem_t *item, void *param)
 {
+	overflow_item_count++;
 	if (obs_sceneitem_locked(item))
 		return true;
 
@@ -1690,9 +1705,6 @@ bool OBSBasicPreview::DrawSelectedOverflow(obs_scene_t *scene,
 
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DEFAULT, "DrawSelectedOverflow");
 
-	obs_transform_info info;
-	obs_sceneitem_get_info(item, &info);
-
 	gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_REPEAT);
 	gs_eparam_t *image = gs_effect_get_param_by_name(solid, "image");
 	gs_eparam_t *scale = gs_effect_get_param_by_name(solid, "scale");
@@ -1705,9 +1717,6 @@ bool OBSBasicPreview::DrawSelectedOverflow(obs_scene_t *scene,
 
 	gs_matrix_push();
 	gs_matrix_mul(&boxTransform);
-
-	obs_sceneitem_crop crop;
-	obs_sceneitem_get_crop(item, &crop);
 
 	while (gs_effect_loop(solid, "Draw")) {
 		gs_draw_sprite(prev->overflow, 0, 1, 1);
@@ -1917,6 +1926,7 @@ void OBSBasicPreview::DrawOverflow()
 	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
 
 	OBSScene scene = main->GetCurrentScene();
+	overflow_item_count = 0;
 
 	if (scene) {
 		gs_matrix_push();
@@ -1925,6 +1935,7 @@ void OBSBasicPreview::DrawOverflow()
 		gs_matrix_pop();
 	}
 
+
 	gs_load_vertexbuffer(nullptr);
 
 	GS_DEBUG_MARKER_END();
@@ -1932,12 +1943,61 @@ void OBSBasicPreview::DrawOverflow()
 
 void OBSBasicPreview::DrawSceneEditing()
 {
+	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+
+#if DROIDCAM_OVERRIDE
+	if (overflow_item_count == 0) {
+
+		if (!add_device) {
+			std::string path;
+			GetDataFilePath("images/add-device.png", path);
+			add_device = gs_texture_create_from_file(path.c_str());
+		}
+		int tex_w = gs_texture_get_width(add_device);
+		int tex_h = gs_texture_get_height(add_device);
+
+		vec2 screenSize = GetOBSScreenSize();
+		screenSize.x *= main->previewScale;
+		screenSize.y *= main->previewScale;
+
+		vec2 scale, offs;
+		if (screenSize.x < tex_w) {
+			scale.x = screenSize.x / (float)tex_w;
+			offs.x = 0;
+		}
+		else {
+			scale.x = 1.0f;
+			offs.x = (screenSize.x / 2) - (float)(tex_w >> 1);
+		}
+
+		if (screenSize.y < tex_h) {
+			scale.y = screenSize.y / (float)tex_h;
+			offs.y = 0;
+		}
+		else {
+			scale.y = 1.0f;
+			offs.y = (screenSize.y / 2) - (float)(tex_h >> 1);
+		}
+
+		gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
+		gs_eparam_t *image = gs_effect_get_param_by_name(effect, "image");
+		gs_effect_set_texture(image, add_device);
+		gs_matrix_push();
+
+		const float sxy = scale.x < scale.y ? scale.x : scale.y;
+		gs_matrix_scale3f(sxy, sxy, 1.0f);
+		gs_matrix_translate3f(offs.x, offs.y, 0);
+
+		while (gs_effect_loop(effect, "Draw")) {
+			gs_draw_sprite(add_device, 0, 0, 0);
+		}
+		gs_matrix_pop();
+	}
+#endif
 	if (locked)
 		return;
 
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DEFAULT, "DrawSceneEditing");
-
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
 
 	gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_SOLID);
 	gs_technique_t *tech = gs_effect_get_technique(solid, "Solid");
