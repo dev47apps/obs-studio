@@ -1953,6 +1953,8 @@ void OBSBasic::OBSInit()
 	ui->menuTools->menuAction()->setVisible(false);
 	ui->profileMenu->menuAction()->setVisible(false);
 	ui->sceneCollectionMenu->menuAction()->setVisible(false);
+	ui->actionCopyFilters->setEnabled(false);
+	ui->actionCopySource->setEnabled(false);
 #endif
 	disableSaving--;
 
@@ -5349,6 +5351,88 @@ ColorSelect::ColorSelect(QWidget *parent)
 void OBSBasic::CreateSourcePopupMenu(int idx, bool preview)
 {
 	QMenu popup(this);
+#if DROIDCAM_OVERRIDE
+	delete colorMenu;
+	delete colorWidgetAction;
+	delete colorSelect;
+
+	QPointer<QMenu> addSourceMenu = nullptr;
+
+	if (preview) {
+		QAction *action = popup.addAction(
+			QTStr("Basic.Main.PreviewConextMenu.Enable"), this,
+			SLOT(TogglePreview()));
+		action->setCheckable(true);
+		action->setChecked(
+			obs_display_enabled(ui->preview->GetDisplay()));
+		if (IsPreviewProgramMode())
+			action->setEnabled(false);
+
+		popup.addAction(ui->actionLockPreview);
+		popup.addSeparator();
+
+		addSourceMenu = CreateAddSourcePopupMenu();
+	}
+	else if (idx == -1) {
+		addSourceMenu = CreateAddSourcePopupMenu();
+	}
+
+	if (addSourceMenu) {
+		popup.addMenu(addSourceMenu);
+	}
+
+	if (idx != -1) {
+		OBSSceneItem sceneItem = ui->sources->Get(idx);
+		bool lock = obs_sceneitem_locked(sceneItem);
+		obs_source_t *source = obs_sceneitem_get_source(sceneItem);
+		uint32_t flags = obs_source_get_output_flags(source);
+		bool hasAudio = (flags & OBS_SOURCE_AUDIO) == OBS_SOURCE_AUDIO;
+		QAction *action;
+		popup.addSeparator();
+
+		if (!preview) {
+			colorMenu = new QMenu(QTStr("ChangeBG"));
+			colorWidgetAction = new QWidgetAction(colorMenu);
+			colorSelect = new ColorSelect(colorMenu);
+			popup.addMenu(AddBackgroundColorMenu(
+				colorMenu, colorWidgetAction, colorSelect, sceneItem));
+			popup.addAction(QTStr("Rename"), this,
+				SLOT(EditSceneItemName()));
+			popup.addAction(QTStr("Remove"), this,
+				SLOT(on_actionRemoveSource_triggered()));
+			popup.addSeparator();
+		}
+
+		popup.addMenu(ui->orderMenu);
+		popup.addMenu(ui->transformMenu);
+
+		ui->actionResetTransform->setEnabled(!lock);
+		ui->actionRotate90CW->setEnabled(!lock);
+		ui->actionRotate90CCW->setEnabled(!lock);
+		ui->actionRotate180->setEnabled(!lock);
+		ui->actionFlipHorizontal->setEnabled(!lock);
+		ui->actionFlipVertical->setEnabled(!lock);
+		ui->actionFitToScreen->setEnabled(!lock);
+		ui->actionStretchToScreen->setEnabled(!lock);
+		ui->actionCenterToScreen->setEnabled(!lock);
+		ui->actionVerticalCenter->setEnabled(!lock);
+		ui->actionHorizontalCenter->setEnabled(!lock);
+
+		popup.addSeparator();
+
+		if (hasAudio) {
+			QAction *actionHideMixer =
+				popup.addAction(QTStr("HideMixer"), this,
+					SLOT(ToggleHideMixer()));
+			actionHideMixer->setCheckable(true);
+			actionHideMixer->setChecked(SourceMixerHidden(source));
+		}
+
+		popup.addAction(QTStr("Filters"), this, SLOT(OpenFilters()));
+		popup.addAction(QTStr("Properties"), this,
+			SLOT(on_actionSourceProperties_triggered()));
+	}
+#else
 	delete previewProjectorSource;
 	delete sourceProjector;
 	delete scaleFilteringMenu;
@@ -5523,7 +5607,7 @@ void OBSBasic::CreateSourcePopupMenu(int idx, bool preview)
 		ui->actionCopySource->setEnabled(true);
 	}
 	ui->actionPasteFilters->setEnabled(copyFiltersString && idx != -1);
-
+#endif
 	popup.exec(QCursor::pos());
 }
 
@@ -5620,6 +5704,7 @@ QMenu *OBSBasic::CreateAddSourcePopupMenu()
 		foundValues = true;
 	}
 
+#if DROIDCAM_OVERRIDE==0
 	addSource(popup, "scene", Str("Basic.Scene"));
 
 	popup->addSeparator();
@@ -5629,6 +5714,7 @@ QMenu *OBSBasic::CreateAddSourcePopupMenu()
 	connect(addGroup, SIGNAL(triggered(bool)), this,
 		SLOT(AddSourceFromAction()));
 	popup->addAction(addGroup);
+#endif
 
 	if (!foundDeprecated) {
 		delete deprecated;
@@ -7572,6 +7658,7 @@ void OBSBasic::PreviewDisabledMenu(const QPoint &pos)
 	action->setChecked(obs_display_enabled(ui->preview->GetDisplay()));
 
 	previewProjectorMain = new QMenu(QTStr("PreviewProjector"));
+#if DROIDCAM_OVERRIDE==0
 	AddProjectorMenuMonitors(previewProjectorMain, this,
 				 SLOT(OpenPreviewProjector()));
 
@@ -7580,6 +7667,7 @@ void OBSBasic::PreviewDisabledMenu(const QPoint &pos)
 
 	popup.addMenu(previewProjectorMain);
 	popup.addAction(previewWindow);
+#endif
 	popup.exec(QCursor::pos());
 
 	UNUSED_PARAMETER(pos);
