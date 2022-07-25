@@ -951,11 +951,11 @@ private slots:
 	void on_actionVerticalCenter_triggered();
 	void on_actionHorizontalCenter_triggered();
 
-	void on_customContextMenuRequested(const QPoint &pos);
+	virtual void on_customContextMenuRequested(const QPoint &pos);
 
 	void on_scenes_currentItemChanged(QListWidgetItem *current,
 					  QListWidgetItem *prev);
-	void on_scenes_customContextMenuRequested(const QPoint &pos);
+	virtual void on_scenes_customContextMenuRequested(const QPoint &pos);
 	void GridActionClicked();
 	void on_actionAddScene_triggered();
 	void on_actionRemoveScene_triggered();
@@ -991,12 +991,12 @@ private slots:
 	void ScreenshotProgram();
 	void ScreenshotScene();
 
-	void on_actionHelpPortal_triggered();
-	void on_actionWebsite_triggered();
-	void on_actionDiscord_triggered();
+	virtual void on_actionHelpPortal_triggered();
+	virtual void on_actionWebsite_triggered();
+	virtual void on_actionDiscord_triggered();
 
 	void on_preview_customContextMenuRequested(const QPoint &pos);
-	void ProgramViewContextMenuRequested(const QPoint &pos);
+	virtual void ProgramViewContextMenuRequested(const QPoint &pos);
 	void PreviewDisabledMenu(const QPoint &pos);
 
 	void on_actionNewSceneCollection_triggered();

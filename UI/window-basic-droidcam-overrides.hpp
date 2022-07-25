@@ -10,4 +10,10 @@ struct OBSBasicDroidCam : public OBSBasic {
 #endif
 
 private slots:
+	void on_actionHelpPortal_triggered() override;
+	void on_actionWebsite_triggered() override;
+	void on_actionDiscord_triggered() override { };
+	void on_customContextMenuRequested(const QPoint &) override { };
+	void on_scenes_customContextMenuRequested(const QPoint &) override { };
+	void ProgramViewContextMenuRequested(const QPoint &) override { };
 };

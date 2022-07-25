@@ -147,6 +147,18 @@ void ScreenshotObj::Save()
 		rec_path, "png", noSpace, overwriteIfExists,
 		GetFormatString(filenameFormat, "Screenshot", nullptr).c_str());
 
+	#if DROIDCAM_OVERRIDE
+	QString exportFile =
+		SaveFile(main, QTStr("Save"), path.c_str(), "Image (*.png *.jpg)");
+
+	if (exportFile.isEmpty() || exportFile.isNull()) {
+		deleteLater();
+		return;
+	}
+
+	path = QT_TO_UTF8(exportFile);
+	#endif
+
 	th = std::thread([this] { MuxAndFinish(); });
 }
 

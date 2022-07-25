@@ -2,6 +2,7 @@
 #include "window-basic-settings.hpp"
 #include "window-basic-droidcam-overrides.hpp"
 #include <QMenu>
+#include <QDesktopServices>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -25,6 +26,18 @@ bool OBSBasicDroidCam::nativeEvent(const QByteArray &eventType, void *message, l
 
 void OBSBasicDroidCam::OBSInit() {
 	OBSBasic::OBSInit();
+}
+
+void OBSBasicDroidCam::on_actionHelpPortal_triggered()
+{
+	QUrl url = QUrl("https://droidcam.app/help", QUrl::TolerantMode);
+	QDesktopServices::openUrl(url);
+}
+
+void OBSBasicDroidCam::on_actionWebsite_triggered()
+{
+	QUrl url = QUrl("https://droidcam.app", QUrl::TolerantMode);
+	QDesktopServices::openUrl(url);
 }
 
 void CleanMenuItems(QMenu *menu, bool recursive) {
