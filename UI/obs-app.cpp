@@ -90,6 +90,7 @@ bool opt_allow_opengl = false;
 bool opt_always_on_top = false;
 bool opt_disable_high_dpi_scaling = false;
 bool opt_disable_updater = false;
+bool opt_updater_beta = false;
 bool opt_disable_missing_files_check = false;
 string opt_starting_collection;
 string opt_starting_profile;
@@ -1518,11 +1519,7 @@ bool OBSApp::IsPortableMode()
 
 bool OBSApp::IsUpdaterDisabled()
 {
-#if DROIDCAM_OVERRIDE
-	return true;
-#else
 	return opt_disable_updater;
-#endif
 }
 
 bool OBSApp::IsMissingFilesCheckDisabled()
@@ -2946,6 +2943,11 @@ int main(int argc, char *argv[])
 		opt_disable_updater =
 			os_file_exists(BASE_PATH "/disable_updater") ||
 			os_file_exists(BASE_PATH "/disable_updater.txt");
+	}
+
+	if (!opt_updater_beta) {
+		opt_updater_beta = os_file_exists(BASE_PATH "/beta_testing") ||
+			os_file_exists(BASE_PATH "/beta_testing.txt");
 	}
 
 	if (!opt_disable_missing_files_check) {
