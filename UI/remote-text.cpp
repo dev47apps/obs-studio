@@ -216,7 +216,7 @@ bool GetRemoteFile(const char *url, std::string &str, std::string &error,
 		} else if (signature) {
 			for (string &h : header_in_list) {
 				string name = h.substr(0, 13);
-				if (name == "X-Signature: ") {
+				if (name == "x-signature: " || name == "X-Signature: ") {
 					*signature = h.substr(13);
 					break;
 				}

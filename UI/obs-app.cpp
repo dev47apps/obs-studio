@@ -1517,11 +1517,7 @@ bool OBSApp::IsPortableMode()
 
 bool OBSApp::IsUpdaterDisabled()
 {
-#if DROIDCAM_OVERRIDE
-	return true;
-#else
 	return opt_disable_updater;
-#endif
 }
 
 bool OBSApp::IsMissingFilesCheckDisabled()
