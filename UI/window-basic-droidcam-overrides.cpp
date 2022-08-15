@@ -76,9 +76,22 @@ void CleanMenuItems(QMenu *menu, bool recursive) {
 	foreach(QAction *action, menu->actions()) {
 		if (action->isSeparator()) {
 			prevSeperator = action;
+			action->setVisible(false);
+			continue;
 		}
-		else if (recursive && action->menu()) {
-			CleanMenuItems(action->menu(), false);
+
+		if (action->menu()) {
+			QString name = action->menu()->objectName();
+			if (name == QString::fromLocal8Bit("menuLogFiles"))
+				prevSeperator->setVisible(true);
+
+			if (recursive) {
+				CleanMenuItems(action->menu(), recursive);
+			}
+			else {
+				action->setVisible(false);
+			}
+			continue;
 		}
 
 		QString name = action->objectName();
@@ -107,6 +120,13 @@ void CleanMenuItems(QMenu *menu, bool recursive) {
 		}
 
 		// Help Menu
+		if (name == QString::fromLocal8Bit("actionShowLogs"))
+			continue;
+		if (name == QString::fromLocal8Bit("actionShowCrashLogs"))
+			continue;
+
+		if (name == QString::fromLocal8Bit("actionCheckForUpdates"))
+			continue;
 		if (name == QString::fromLocal8Bit("actionHelpPortal"))
 			continue;
 		if (name == QString::fromLocal8Bit("actionWebsite"))

@@ -435,9 +435,13 @@ if(DROIDCAM_OVERRIDE)
 
 	list(REMOVE_ITEM obs_SOURCES
 		window-basic-settings-stream.cpp
+		win-update/win-update.cpp
+		win-update/win-update-helpers.cpp
 		)
 
 	list(APPEND obs_SOURCES
+		win-update/sigcheck.cpp
+		win-update/droidcam-update.cpp
 		window-basic-droidcam-overrides.cpp
 		)
 	list(APPEND obs_HEADERS
