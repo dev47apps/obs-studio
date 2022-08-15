@@ -447,10 +447,20 @@ if(DROIDCAM_OVERRIDE)
 		forms/DroidCamAbout.ui
 		)
 
+	if(WIN32)
+	list(REMOVE_ITEM obs_SOURCES
+		win-update/win-update.cpp
+		win-update/win-update-helpers.cpp
+		)
+	list(APPEND obs_SOURCES
+		win-update/sigcheck.cpp
+		win-update/droidcam-update.cpp
+		)
 	if(NPDB)
 		message(STATUS "pdb files disabled")
 	else()
 		add_link_options(/DEBUG:FULL)
+	endif()
 	endif()
 endif()
 

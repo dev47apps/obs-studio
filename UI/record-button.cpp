@@ -1,5 +1,6 @@
 #include "record-button.hpp"
 #include "window-basic-main.hpp"
+#include <QResizeEvent>
 
 void RecordButton::resizeEvent(QResizeEvent *event)
 {
