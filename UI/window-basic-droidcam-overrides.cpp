@@ -1,4 +1,5 @@
 #include "obs-app.hpp"
+#include "window-dock-browser.hpp"
 #include "window-basic-settings.hpp"
 #include "window-basic-droidcam-overrides.hpp"
 #include <QMenu>
@@ -24,8 +25,158 @@ bool OBSBasicDroidCam::nativeEvent(const QByteArray &eventType, void *message, l
 }
 #endif
 
+const char *DROIDCAM_OBS_ID = "droidcam_obs";
+
+// TODO reduce logging post-beta
+void OBSBasicDroidCam::DroidCam_Connect(OBSSource source) {
+	blog(LOG_INFO, "DroidCam_Connect: %s", obs_source_get_name(source));
+
+	if (last_remote_url.empty()) {
+		DroidCam_Update_Remote(source);
+		return;
+	}
+
+	obs_sceneitem_t *item = obs_scene_sceneitem_from_source(GetCurrentScene(), source);
+	if (item) {
+		if (obs_sceneitem_selected(item)) {
+			blog(LOG_INFO, "DroidCam_Connect: source SELECTED => Update Remote");
+			DroidCam_Update_Remote(source);
+		}
+		obs_sceneitem_release(item);
+		return;
+	}
+}
+
+void OBSBasicDroidCam::DroidCam_Disconnect(OBSSource source) {
+	blog(LOG_INFO, "DroidCam_Disconnect: %p", source.Get());
+	struct io {
+		obs_source_t *source;
+		OBSBasicDroidCam *thiz;
+	} io { source.Get(), this };
+
+	obs_scene_enum_items(GetCurrentScene(),
+		[](obs_scene_t*, obs_sceneitem_t *item, void *data) {
+		auto io = (struct io*) data;
+		obs_source_t* source = obs_sceneitem_get_source(item);
+		if (!source || source == io->source)
+			return true;
+
+		const char *id = obs_source_get_id(source);
+		if (strcmp(id, DROIDCAM_OBS_ID) == 0 && io->thiz->DroidCam_Update_Remote(source))
+			return false; // ok, stop enumeration
+
+		return true;
+	}, &io);
+}
+
+bool OBSBasicDroidCam::DroidCam_Update_Remote(OBSSource source) {
+	std::string remote_url = "";
+	obs_data_t *settings = obs_source_get_settings(source);
+	if (settings) {
+		const char *url = obs_data_get_string(settings, "remote_url");
+		if (url && strlen(url) > 4) remote_url = url;
+		obs_data_release(settings);
+	}
+
+	blog(LOG_INFO, "DroidCam_Update_Remote: %s url=%s // last_remote_url=%s",
+		obs_source_get_name(source),
+		remote_url.c_str(), last_remote_url.c_str());
+
+	if (remote_url.empty() || remote_url == last_remote_url)
+		return false;
+
+	QCefWidget *browser = (QCefWidget *)remoteDock->widget();
+	if (browser && obs_source_showing(source))
+	{
+		blog(LOG_INFO, "DroidCam_Update_Remote: SET => %s", remote_url.c_str());
+		browser->setURL(remote_url);
+		last_remote_url = remote_url;
+		return true;
+	}
+	return false;
+}
+
+OBSBasicDroidCam::~OBSBasicDroidCam() {
+}
+
 void OBSBasicDroidCam::OBSInit() {
 	OBSBasic::OBSInit();
+
+	signalHandlers.emplace_back(obs_get_signal_handler(), "droidcam_connect",
+		[](void *data, calldata_t *cd) {
+			obs_source_t *source = (obs_source_t *)calldata_ptr(cd, "source");
+			QMetaObject::invokeMethod(static_cast<OBSBasicDroidCam *>(data),
+				"DroidCam_Connect", Q_ARG(OBSSource, source));
+		}, this);
+
+	signalHandlers.emplace_back(obs_get_signal_handler(), "droidcam_disconnect",
+		[](void *data, calldata_t *cd) {
+			obs_source_t *source = (obs_source_t *)calldata_ptr(cd, "source");
+			QMetaObject::invokeMethod(static_cast<OBSBasicDroidCam *>(data),
+				"DroidCam_Disconnect", Q_ARG(OBSSource, source));
+		}, this);
+
+	OBSScene curScene = GetCurrentScene();
+	if (curScene) {
+		obs_source_t *sceneSource = obs_scene_get_source(curScene);
+		signal_handler_t *signal = obs_source_get_signal_handler(sceneSource);
+
+		signalHandlers.emplace_back(signal, "item_select",
+		[](void *data, calldata_t *cd) {
+			obs_source_t* source = obs_sceneitem_get_source(
+				(obs_sceneitem_t *)calldata_ptr(cd, "item"));
+
+			blog(LOG_INFO, "Source Selected: %s", obs_source_get_name(source));
+			const char *id = obs_source_get_id(source);
+			if (strcmp(id, DROIDCAM_OBS_ID) == 0)
+				QMetaObject::invokeMethod(static_cast<OBSBasicDroidCam *>(data),
+					"DroidCam_Update_Remote", Q_ARG(OBSSource, source));
+		}, this);
+
+		signalHandlers.emplace_back(signal, "item_remove",
+		[](void *data, calldata_t *cd) {
+			obs_source_t* source = obs_sceneitem_get_source(
+				(obs_sceneitem_t *)calldata_ptr(cd, "item"));
+
+			if (source) {
+				blog(LOG_INFO, "Source Removed: %s", obs_source_get_name(source));
+				const char *id = obs_source_get_id(source);
+				if (strcmp(id, DROIDCAM_OBS_ID) == 0)
+					QMetaObject::invokeMethod(static_cast<OBSBasicDroidCam *>(data),
+						"DroidCam_Disconnect", Q_ARG(OBSSource, source));
+			}
+		}, this);
+	}
+
+	#ifdef BROWSER_AVAILABLE
+	std::string script = "document.body.style.backgroundColor='#000';";
+
+	remoteDock.reset(new BrowserDock());
+	remoteDock->setObjectName("droidcamRemote");
+	remoteDock->setFloating(true);
+	remoteDock->setMinimumSize(160, 160);
+	remoteDock->setWindowTitle(QTStr("Remote.Title"));
+	remoteDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+	QCefWidget *browser = cef->create_widget(nullptr, "about:blank");
+	browser->setStartupScript(script);
+	remoteDock->SetWidget(browser);
+
+	// note addDockWidget != AddDockWidget
+	addDockWidget(Qt::RightDockWidgetArea, remoteDock.data());
+	remoteDock->setVisible(false);
+	last_remote_url = "";
+
+	remoteMenuEntry.reset(AddDockWidget(remoteDock.data()));
+
+	// re-run restoreState() from  OBSBasic::OBSInit()
+	const char *dockStateStr = config_get_string(
+		App()->GlobalConfig(), "BasicWindow", "DockState");
+
+	if (dockStateStr) {
+		restoreState(QByteArray::fromBase64(QByteArray(dockStateStr)));
+	}
+	#endif // BROWSER_AVAILABLE
 }
 
 void OBSBasicDroidCam::on_actionHelpPortal_triggered()
@@ -132,6 +283,5 @@ void OBSBasicSettings::UpdateVodTrackSetting() {}
 OBSService OBSBasicSettings::GetStream1Service() { return nullptr; }
 void OBSBasicSettings::UpdateServiceRecommendations() {}
 void OBSBasicSettings::DisplayEnforceWarning(bool) {}
-bool OBSBasicSettings::ResFPSValid(obs_service_resolution*,
-	size_t, int) { return true; }
+bool OBSBasicSettings::ResFPSValid(obs_service_resolution*, size_t, int) { return true; }
 void OBSBasicSettings::UpdateResFPSLimits() {}
