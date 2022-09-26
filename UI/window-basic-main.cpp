@@ -9661,7 +9661,11 @@ void OBSBasic::ResizeOutputSizeOfSource()
 
 QAction *OBSBasic::AddDockWidget(QDockWidget *dock)
 {
+#if DROIDCAM_OVERRIDE
+	QAction *action = ui->viewMenu->addAction(dock->windowTitle());
+#else
 	QAction *action = ui->viewMenuDocks->addAction(dock->windowTitle());
+#endif
 	action->setCheckable(true);
 	assignDockToggle(dock, action);
 	extraDocks.push_back(dock);
