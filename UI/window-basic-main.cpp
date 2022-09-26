@@ -197,9 +197,9 @@ void assignDockToggle(QDockWidget *dock, QAction *action)
 		action->blockSignals(false);
 	};
 	auto handleMenuToggle = [dock](bool check) {
-		dock->blockSignals(true);
+		//dock->blockSignals(true);
 		dock->setVisible(check);
-		dock->blockSignals(false);
+		//dock->blockSignals(false);
 	};
 
 	dock->connect(dock->toggleViewAction(), &QAction::toggled,
@@ -9690,7 +9690,12 @@ void OBSBasic::ResizeOutputSizeOfSource()
 
 QAction *OBSBasic::AddDockWidget(QDockWidget *dock)
 {
+#if DROIDCAM_OVERRIDE
+	QAction *action = new QAction(dock->windowTitle());
+	ui->viewMenu->insertAction(ui->toggleMixer, action);
+#else
 	QAction *action = ui->viewMenuDocks->addAction(dock->windowTitle());
+#endif
 	action->setCheckable(true);
 	assignDockToggle(dock, action);
 	extraDocks.push_back(dock);
