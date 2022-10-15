@@ -27,9 +27,27 @@ bool OBSBasicDroidCam::nativeEvent(const QByteArray &eventType, void *message, l
 
 const char *DROIDCAM_OBS_ID = "droidcam_obs";
 
+static bool allowEvent(void* source, std::map<void*, uint64_t> &event_log) {
+	auto now = os_gettime_ns();
+	auto elem = event_log.find(source);
+	if (elem != event_log.end()) {
+		if ((now - elem->second) < 15000000000) {
+			blog(LOG_INFO, "Rate Limiting Notifications");
+			return false;
+		}
+	}
+
+	event_log.insert_or_assign(source, now);
+	return true;
+}
+
 // TODO reduce logging post-beta
 void OBSBasicDroidCam::DroidCam_Connect(OBSSource source) {
 	blog(LOG_INFO, "DroidCam_Connect: %s", obs_source_get_name(source));
+	if (allowEvent(source, event_log)) {
+		SysTrayNotify(QTStr("Connected"), obs_source_get_name(source),
+			QSystemTrayIcon::Information);
+	}
 
 	if (last_remote_url.empty()) {
 		DroidCam_Update_Remote(source);
@@ -49,6 +67,11 @@ void OBSBasicDroidCam::DroidCam_Connect(OBSSource source) {
 
 void OBSBasicDroidCam::DroidCam_Disconnect(OBSSource source) {
 	blog(LOG_INFO, "DroidCam_Disconnect: %p", source.Get());
+	if (allowEvent(source, event_log)) {
+		SysTrayNotify(QTStr("Disconnected"), obs_source_get_name(source),
+			QSystemTrayIcon::Information);
+	}
+
 	struct io {
 		obs_source_t *source;
 		OBSBasicDroidCam *thiz;

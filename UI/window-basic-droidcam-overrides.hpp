@@ -8,6 +8,7 @@ struct OBSBasicDroidCam : public OBSBasic {
 	QSharedPointer<BrowserDock> remoteDock;
 	QSharedPointer<QAction> remoteMenuEntry;
 	std::string last_remote_url;
+	std::map<void*, uint64_t> event_log;
 
 	void OBSInit() override;
 	~OBSBasicDroidCam();
