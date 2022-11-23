@@ -3244,10 +3244,12 @@ void OBSBasicSettings::SaveVideoSettings()
 	    ConvertResText(QT_TO_UTF8(baseResolution), cx, cy)) {
 		config_set_uint(main->Config(), "Video", "BaseCX", cx);
 		config_set_uint(main->Config(), "Video", "BaseCY", cy);
+	#if DROIDCAM_OVERRIDE==0
 	}
 
 	if (WidgetChanged(ui->outputResolution) &&
 	    ConvertResText(QT_TO_UTF8(outputResolution), cx, cy)) {
+	#endif
 		config_set_uint(main->Config(), "Video", "OutputCX", cx);
 		config_set_uint(main->Config(), "Video", "OutputCY", cy);
 	}
