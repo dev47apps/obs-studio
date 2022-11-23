@@ -5379,6 +5379,9 @@ void OBSBasic::CreateSourcePopupMenu(int idx, bool preview)
 		if (IsPreviewProgramMode())
 			action->setEnabled(false);
 
+		popup.addAction(QTStr("Screenshot.Preview"), this,
+			SLOT(ScreenshotScene()));
+
 		popup.addSeparator();
 		addSourceMenu = CreateAddSourcePopupMenu();
 	}
@@ -5427,6 +5430,8 @@ void OBSBasic::CreateSourcePopupMenu(int idx, bool preview)
 		ui->actionVerticalCenter->setEnabled(!lock);
 		ui->actionHorizontalCenter->setEnabled(!lock);
 
+		popup.addAction(QTStr("Screenshot.Source"), this,
+			SLOT(ScreenshotSelectedSource()));
 		popup.addSeparator();
 
 		if (hasAudio) {
