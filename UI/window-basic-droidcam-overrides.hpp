@@ -32,7 +32,9 @@ struct OBSBasicDroidCam : public OBSBasic {
 private slots:
 	void DroidCam_Connect(OBSSource source);
 	void DroidCam_Disconnect(OBSSource source);
+	bool DroidCam_Cycle_Remote(OBSSource source);
 	bool DroidCam_Update_Remote(OBSSource source);
+	void on_urlChanged(const QString &);
 	void on_actionHelpPortal_triggered() override;
 	void on_actionWebsite_triggered() override;
 	void on_actionDiscord_triggered() override { };

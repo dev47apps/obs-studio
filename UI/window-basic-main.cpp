@@ -197,9 +197,9 @@ void assignDockToggle(QDockWidget *dock, QAction *action)
 		action->blockSignals(false);
 	};
 	auto handleMenuToggle = [dock](bool check) {
-		dock->blockSignals(true);
+		//dock->blockSignals(true);
 		dock->setVisible(check);
-		dock->blockSignals(false);
+		//dock->blockSignals(false);
 	};
 
 	dock->connect(dock->toggleViewAction(), &QAction::toggled,
