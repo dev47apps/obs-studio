@@ -405,6 +405,7 @@ protected:
 		replayBufHotkeys, vcamHotkeys, togglePreviewHotkeys,
 		contextBarHotkeys;
 	obs_hotkey_id forceStreamingStopHotkey;
+	obs_hotkey_pair_id showHideHotkeys;
 
 	void InitDefaultTransitions();
 	void InitTransition(obs_source_t *transition);

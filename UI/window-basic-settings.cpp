@@ -908,7 +908,6 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 #ifdef DROIDCAM_OVERRIDE
 	ui->listWidget->setRowHidden(1, true); // Stream
 	ui->listWidget->setRowHidden(2, true); // Output
-	ui->listWidget->setRowHidden(5, true); // Hotkeys
 
 	#define HIDE_ITEM(item) \
 		if (item) item->setVisible(false)
@@ -2909,9 +2908,9 @@ void OBSBasicSettings::LoadHotkeySettings(obs_hotkey_id ignoreKey)
 			return true;
 
 		if (obs_scene_from_source(source))
-			scenes.emplace_back(source, label, hw);
+			scenes.emplace_back(move(source), label, hw);
 		else if (obs_source_get_name(source) != NULL)
-			sources.emplace_back(source, label, hw);
+			sources.emplace_back(move(source), label, hw);
 
 		return false;
 	};
@@ -2935,6 +2934,7 @@ void OBSBasicSettings::LoadHotkeySettings(obs_hotkey_id ignoreKey)
 			layout->addRow(label, hw);
 			break;
 
+		#if DROIDCAM_OVERRIDE==0
 		case OBS_HOTKEY_REGISTERER_ENCODER:
 			if (HandleEncoder(registerer, label, hw))
 				return;
@@ -2950,6 +2950,7 @@ void OBSBasicSettings::LoadHotkeySettings(obs_hotkey_id ignoreKey)
 				return;
 			break;
 
+		#endif
 		case OBS_HOTKEY_REGISTERER_SOURCE:
 			if (HandleSource(registerer, label, hw))
 				return;
