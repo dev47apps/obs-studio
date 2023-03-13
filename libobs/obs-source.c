@@ -318,14 +318,6 @@ static void obs_source_init_audio_hotkeys(struct obs_source *source)
 		source, "libobs.mute", obs->hotkeys.mute, "libobs.unmute",
 		obs->hotkeys.unmute, obs_source_hotkey_mute,
 		obs_source_hotkey_unmute, source, source);
-
-	source->push_to_mute_key = obs_hotkey_register_source(
-		source, "libobs.push-to-mute", obs->hotkeys.push_to_mute,
-		obs_source_hotkey_push_to_mute, source);
-
-	source->push_to_talk_key = obs_hotkey_register_source(
-		source, "libobs.push-to-talk", obs->hotkeys.push_to_talk,
-		obs_source_hotkey_push_to_talk, source);
 }
 
 static obs_source_t *
