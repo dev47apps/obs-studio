@@ -1130,10 +1130,12 @@ retryScene:
 	config_set_string(App()->GlobalConfig(), "Basic", "SceneCollectionFile",
 			  file_base.c_str());
 
+	#if DROIDCAM_OVERRIDE==0
 	obs_data_array_t *quickTransitionData =
 		obs_data_get_array(data, "quick_transitions");
 	LoadQuickTransitions(quickTransitionData);
 	obs_data_array_release(quickTransitionData);
+	#endif
 
 	RefreshQuickTransitions();
 
@@ -2449,6 +2451,29 @@ void OBSBasic::CreateHotkeys()
 		return false;                                              \
 	}
 
+	showHideHotkeys = obs_hotkey_pair_register_frontend(
+		"OBSBasic.ShowWindow", Str("Show"),
+		"OBSBasic.HideWindow", Str("Hide"),
+		MAKE_CALLBACK(!basic.isVisible(), basic.ToggleShowHide, "Show/Hide"),
+		MAKE_CALLBACK(basic.isVisible(), basic.ToggleShowHide, "Show/Hide"),
+		this, this);
+	LoadHotkeyPair(showHideHotkeys, "OBSBasic.ShowWindow", "OBSBasic.HideWindow");
+
+	/*
+	activeHotkey = obs_hotkey_register_frontend(
+		"OBSBasic.Active", Str("Basic.Stats.Status.Active"),
+		[](void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
+		if (pressed)
+			// need to toggle sysTrayActive
+	}, this);
+	LoadHotkey(screenshotHotkey, "OBSBasic.Active");*/
+
+	#if DROIDCAM_OVERRIDE
+	streamingHotkeys = OBS_INVALID_HOTKEY_PAIR_ID;
+	recordingHotkeys = OBS_INVALID_HOTKEY_PAIR_ID;
+	pauseHotkeys = OBS_INVALID_HOTKEY_PAIR_ID;
+	forceStreamingStopHotkey = OBS_INVALID_HOTKEY_ID;
+	#else
 	streamingHotkeys = obs_hotkey_pair_register_frontend(
 		"OBSBasic.StartStreaming", Str("Basic.Main.StartStreaming"),
 		"OBSBasic.StopStreaming", Str("Basic.Main.StopStreaming"),
@@ -2498,6 +2523,11 @@ void OBSBasic::CreateHotkeys()
 	LoadHotkeyPair(pauseHotkeys, "OBSBasic.PauseRecording",
 		       "OBSBasic.UnpauseRecording");
 
+	#endif
+
+	#if DROIDCAM_OVERRIDE
+	replayBufHotkeys = OBS_INVALID_HOTKEY_PAIR_ID;
+	#else
 	replayBufHotkeys = obs_hotkey_pair_register_frontend(
 		"OBSBasic.StartReplayBuffer",
 		Str("Basic.Main.StartReplayBuffer"),
@@ -2510,7 +2540,7 @@ void OBSBasic::CreateHotkeys()
 		this, this);
 	LoadHotkeyPair(replayBufHotkeys, "OBSBasic.StartReplayBuffer",
 		       "OBSBasic.StopReplayBuffer");
-
+	#endif
 	if (vcamEnabled) {
 		vcamHotkeys = obs_hotkey_pair_register_frontend(
 			"OBSBasic.StartVirtualCam",
@@ -2540,6 +2570,9 @@ void OBSBasic::CreateHotkeys()
 	LoadHotkeyPair(togglePreviewHotkeys, "OBSBasic.EnablePreview",
 		       "OBSBasic.DisablePreview");
 
+	#if DROIDCAM_OVERRIDE
+	contextBarHotkeys = OBS_INVALID_HOTKEY_PAIR_ID;
+	#else
 	contextBarHotkeys = obs_hotkey_pair_register_frontend(
 		"OBSBasic.ShowContextBar", Str("Basic.Main.ShowContextBar"),
 		"OBSBasic.HideContextBar", Str("Basic.Main.HideContextBar"),
@@ -2550,8 +2583,14 @@ void OBSBasic::CreateHotkeys()
 		this, this);
 	LoadHotkeyPair(contextBarHotkeys, "OBSBasic.ShowContextBar",
 		       "OBSBasic.HideContextBar");
+	#endif
 #undef MAKE_CALLBACK
 
+	#if DROIDCAM_OVERRIDE
+	togglePreviewProgramHotkey = OBS_INVALID_HOTKEY_ID;
+	transitionHotkey = OBS_INVALID_HOTKEY_ID;
+	statsHotkey = OBS_INVALID_HOTKEY_ID;
+	#else
 	auto togglePreviewProgram = [](void *data, obs_hotkey_id,
 				       obs_hotkey_t *, bool pressed) {
 		if (pressed)
@@ -2590,6 +2629,7 @@ void OBSBasic::CreateHotkeys()
 		"OBSBasic.ResetStats", Str("Basic.Stats.ResetStats"),
 		resetStats, this);
 	LoadHotkey(statsHotkey, "OBSBasic.ResetStats");
+	#endif
 
 	auto screenshot = [](void *data, obs_hotkey_id, obs_hotkey_t *,
 			     bool pressed) {
@@ -2619,6 +2659,7 @@ void OBSBasic::CreateHotkeys()
 
 void OBSBasic::ClearHotkeys()
 {
+	obs_hotkey_pair_unregister(showHideHotkeys);
 	obs_hotkey_pair_unregister(streamingHotkeys);
 	obs_hotkey_pair_unregister(recordingHotkeys);
 	obs_hotkey_pair_unregister(pauseHotkeys);
@@ -2910,6 +2951,7 @@ void OBSBasic::AddScene(OBSSource source)
 	SetOBSRef(item, OBSScene(scene));
 	ui->scenes->addItem(item);
 
+	#if DROIDCAM_OVERRIDE==0
 	obs_hotkey_register_source(
 		source, "OBSBasic.SelectScene",
 		Str("Basic.Hotkeys.SelectScene"),
@@ -2925,6 +2967,7 @@ void OBSBasic::AddScene(OBSSource source)
 			obs_source_release(source);
 		},
 		static_cast<obs_source_t *>(source));
+	#endif
 
 	signal_handler_t *handler = obs_source_get_signal_handler(source);
 
@@ -3031,9 +3074,9 @@ void OBSBasic::AddSceneItem(OBSSceneItem item)
 
 	SaveProject();
 
+	obs_source_t *sceneSource = obs_scene_get_source(scene);
+	obs_source_t *itemSource = obs_sceneitem_get_source(item);
 	if (!disableSaving) {
-		obs_source_t *sceneSource = obs_scene_get_source(scene);
-		obs_source_t *itemSource = obs_sceneitem_get_source(item);
 		blog(LOG_INFO, "User added source '%s' (%s) to scene '%s'",
 		     obs_source_get_name(itemSource),
 		     obs_source_get_id(itemSource),
@@ -3041,6 +3084,27 @@ void OBSBasic::AddSceneItem(OBSSceneItem item)
 
 		obs_scene_enum_items(scene, select_one,
 				     (obs_sceneitem_t *)item);
+
+	}
+
+	uint32_t flags = obs_source_get_output_flags(itemSource);
+	enum obs_source_type type = obs_source_get_type(itemSource);
+	if (type == OBS_SOURCE_TYPE_INPUT && (flags & OBS_SOURCE_VIDEO)) {
+		obs_hotkey_register_source(itemSource,
+			"OBSBasic.ScreenshotSource",
+			Str("Screenshot.Source"),
+			[](void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
+				OBSBasic *main = reinterpret_cast<OBSBasic *>(
+					App()->GetMainWindow());
+
+				auto potential_source =
+					static_cast<obs_source_t *>(data);
+				auto source = obs_source_get_ref(potential_source);
+				if (source && pressed)
+					main->Screenshot(source);
+				obs_source_release(source);
+			},
+			static_cast<obs_source_t *>(itemSource));
 	}
 }
 
