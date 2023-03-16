@@ -722,6 +722,8 @@ static const char *obs_signals[] = {
 	"void channel_change(int channel, in out ptr source, ptr prev_source)",
 	"void master_volume(in out float volume)",
 
+	"void video_reset(ptr prev_video_info)",
+
 	"void hotkey_layout_change()",
 	"void hotkey_register(ptr hotkey)",
 	"void hotkey_unregister(ptr hotkey)",
@@ -1112,7 +1114,10 @@ int obs_reset_video(struct obs_video_info *ovi)
 	    !size_valid(ovi->base_width, ovi->base_height))
 		return OBS_VIDEO_INVALID_PARAM;
 
+	struct obs_video_info prev_ovi;
 	struct obs_core_video *video = &obs->video;
+
+	memcpy(&prev_ovi, &video->ovi, sizeof(struct obs_video_info));
 
 	stop_video();
 	obs_free_video();
@@ -1170,7 +1175,16 @@ int obs_reset_video(struct obs_video_info *ovi)
 	     get_video_format_name(ovi->output_format),
 	     yuv ? yuv_format : "None", yuv ? "/" : "", yuv ? yuv_range : "");
 
-	return obs_init_video(ovi);
+	int ret = obs_init_video(ovi);
+
+	if (ret == OBS_VIDEO_SUCCESS) {
+		struct calldata data = {0};
+		calldata_set_ptr(&data, "prev_video_info", &prev_ovi);
+		signal_handler_signal(obs->signals, "video_reset", &data);
+		calldata_free(&data);
+	}
+
+	return ret;
 }
 
 bool obs_reset_audio(const struct obs_audio_info *oai)
