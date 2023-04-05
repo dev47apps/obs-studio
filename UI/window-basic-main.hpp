@@ -280,6 +280,7 @@ protected:
 	QPointer<QAction> sysTrayRecord;
 	QPointer<QAction> sysTrayReplayBuffer;
 	QPointer<QAction> sysTrayVirtualCam;
+	QPointer<QAction> sysTrayActive;
 	QPointer<QAction> showHide;
 	QPointer<QAction> exit;
 	QPointer<QMenu> trayMenu;
@@ -983,6 +984,7 @@ private slots:
 	void on_actionScaleCanvas_triggered();
 	void on_actionScaleOutput_triggered();
 
+	virtual void ActivateDeactivateClicked() {};
 	void on_streamButton_clicked();
 	void on_recordButton_clicked();
 	void VCamButtonClicked();

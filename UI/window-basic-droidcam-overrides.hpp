@@ -41,4 +41,6 @@ private slots:
 	void on_customContextMenuRequested(const QPoint &) override { };
 	void on_scenes_customContextMenuRequested(const QPoint &) override { };
 	void ProgramViewContextMenuRequested(const QPoint &) override { };
+	void EnumActiveSources();
+	void ActivateDeactivateClicked();
 };
