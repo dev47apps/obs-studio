@@ -43,6 +43,10 @@ void OBSBasicDroidCam::DroidCam_Connect(OBSSource source) {
 			QSystemTrayIcon::Information);
 	}
 
+	sysTrayActive->setEnabled(true);
+	sysTrayActive->setChecked(true);
+	OBSBasic::OnActivate();
+
 	if (last_remote_url.rfind("http", 0) != 0) {
 		DroidCam_Update_Remote(source);
 		return;
@@ -72,6 +76,8 @@ void OBSBasicDroidCam::DroidCam_Disconnect(OBSSource source) {
 		if (browser) browser->setURL("about:blank");
 		last_remote_url = "";
 	}
+
+	EnumActiveSources();
 }
 
 bool OBSBasicDroidCam::DroidCam_Cycle_Remote(OBSSource source) {
@@ -140,6 +146,7 @@ OBSBasicDroidCam::~OBSBasicDroidCam() {
 
 void OBSBasicDroidCam::OBSInit() {
 	OBSBasic::OBSInit();
+	EnumActiveSources();
 
 	signalHandlers.emplace_back(obs_get_signal_handler(), "droidcam_connect",
 		[](void *data, calldata_t *cd) {
@@ -180,11 +187,24 @@ void OBSBasicDroidCam::OBSInit() {
 			if (source) {
 				blog(LOG_INFO, "Source Removed: %s", obs_source_get_name(source));
 				const char *id = obs_source_get_id(source);
-				if (strcmp(id, DROIDCAM_OBS_ID) == 0)
+				if (strcmp(id, DROIDCAM_OBS_ID) == 0) {
 					QMetaObject::invokeMethod(static_cast<OBSBasicDroidCam *>(data),
 						"DroidCam_Cycle_Remote", Q_ARG(OBSSource, source));
+					QMetaObject::invokeMethod(static_cast<OBSBasicDroidCam *>(data),
+						"EnumActiveSources");
+				}
 			}
 		}, this);
+
+		signal = obs_get_signal_handler();
+		auto ShowHide = [](void *data, calldata_t *cd) {
+			auto source = (obs_source_t*)calldata_ptr(cd, "source");
+			if (source && strcmp(obs_source_get_id(source), DROIDCAM_OBS_ID) == 0) {
+				QMetaObject::invokeMethod(static_cast<OBSBasicDroidCam *>(data), "EnumActiveSources");
+			}
+		};
+		signalHandlers.emplace_back(signal, "source_show", ShowHide, this);
+		signalHandlers.emplace_back(signal, "source_hide", ShowHide, this);
 	}
 
 	#ifdef BROWSER_AVAILABLE
@@ -233,6 +253,92 @@ void OBSBasicDroidCam::OBSInit() {
 		}
 	}
 	#endif // BROWSER_AVAILABLE
+}
+
+void OBSBasicDroidCam::EnumActiveSources(void) {
+	struct io {
+		int count;
+		int visible;
+		int connected;
+		OBSBasicDroidCam *thiz;
+	} io{ 0, 0, 0, this };
+
+	obs_scene_enum_items(GetCurrentScene(),
+		[](obs_scene_t*, obs_sceneitem_t *item, void *data) {
+		auto io = (struct io*) data;
+		obs_source_t* source = obs_sceneitem_get_source(item);
+		if (!source)
+			return true;
+
+		const char *id = obs_source_get_id(source);
+		if (strcmp(id, DROIDCAM_OBS_ID) != 0)
+			return true;
+
+		int status = 0;
+		calldata_t cd;
+		calldata_init(&cd);
+		calldata_set_int(&cd, "status", status);
+		signal_handler_signal(obs_source_get_signal_handler(source),
+			"droidcam_source_status", &cd);
+		status = (int)calldata_int(&cd, "status");
+		calldata_free(&cd);
+
+		// if the source is not "activated", then its irrelevant
+		if (status == 0)
+			return true;
+
+		io->count++;
+		if (obs_source_showing(source))
+			io->visible++;
+
+		if (status > 1)
+			io->connected++;
+		return true;
+	}, &io);
+
+	blog(LOG_INFO, "EnumActiveSources: count=%d visible=%d connected=%d",
+		io.count, io.visible, io.connected);
+
+	if (io.count == 0) {
+		sysTrayActive->setEnabled(false);
+		goto deactivate_paused;
+	}
+
+	sysTrayActive->setEnabled(true);
+	if (io.visible > 0) {
+		sysTrayActive->setChecked(true);
+		if (io.connected == 0) {
+			OBSBasic::OnDeactivate();
+			if (trayIcon && trayIcon->isVisible()) {
+				QIcon trayIconFile = QIcon(":/res/images/tray_waiting.png");
+				trayIcon->setIcon(
+					QIcon::fromTheme("obs-tray-waiting", trayIconFile));
+			}
+		}
+	}
+	else {
+		deactivate_paused:
+		sysTrayActive->setChecked(false);
+		OBSBasic::OnDeactivate();
+		if (trayIcon && trayIcon->isVisible()) {
+			QIcon trayIconFile = QIcon(":/res/images/obs_paused.png");
+			trayIcon->setIcon(
+				QIcon::fromTheme("obs-tray-paused", trayIconFile));
+		}
+	}
+}
+
+void OBSBasicDroidCam::ActivateDeactivateClicked() {
+	bool toggle = sysTrayActive->isChecked();
+	obs_scene_enum_items(GetCurrentScene(),
+		[](obs_scene_t*, obs_sceneitem_t *item, void *data) {
+		bool toggle = *(bool*)data;
+		obs_source_t* source = obs_sceneitem_get_source(item);
+		if (source && strcmp(obs_source_get_id(source), DROIDCAM_OBS_ID) == 0)
+			obs_sceneitem_set_visible(item, toggle);
+
+		return true;
+	}, &toggle);
 }
 
 void OBSBasicDroidCam::on_actionHelpPortal_triggered()
