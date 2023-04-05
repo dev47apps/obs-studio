@@ -21,7 +21,7 @@
 #define ilog(format, ...) xlog(LOG_INFO, format, ##__VA_ARGS__)
 #define elog(format, ...) xlog(LOG_ERROR, format, ##__VA_ARGS__)
 
-#define UPDATES_URL "https://update.dev47apps.net/"
+#define UPDATES_URL "https://www.dev47apps.com/files/update/"
 #define UPDATE_FILE "droidcam-obs-client.1.txt"
 
 const BYTE DEV47APPS_SERIAL[] = {

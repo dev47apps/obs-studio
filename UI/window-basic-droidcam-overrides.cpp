@@ -343,13 +343,13 @@ void OBSBasicDroidCam::ActivateDeactivateClicked() {
 
 void OBSBasicDroidCam::on_actionHelpPortal_triggered()
 {
-	QUrl url = QUrl("https://droidcam.app/help", QUrl::TolerantMode);
+	QUrl url = QUrl("https://beta.droidcam.app/help", QUrl::TolerantMode);
 	QDesktopServices::openUrl(url);
 }
 
 void OBSBasicDroidCam::on_actionWebsite_triggered()
 {
-	QUrl url = QUrl("https://droidcam.app", QUrl::TolerantMode);
+	QUrl url = QUrl("https://beta.droidcam.app", QUrl::TolerantMode);
 	QDesktopServices::openUrl(url);
 }
 
