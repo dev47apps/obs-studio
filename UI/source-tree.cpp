@@ -24,6 +24,8 @@
 #include <QStylePainter>
 #include <QStyleOptionFocusRect>
 
+extern const char *DROIDCAM_OBS_ID;
+
 static inline OBSScene GetCurrentScene()
 {
 	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
@@ -119,6 +121,30 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_)
 		boxLayout->addSpacing(2);
 	}
 	boxLayout->addWidget(label);
+	#if DROIDCAM_OVERRIDE
+	if (strcmp(id, DROIDCAM_OBS_ID) == 0) {
+		batteryIcon = new QLabel();
+		batteryIcon->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+		batteryIcon->setFixedSize(14, 16);
+		batteryIcon->setAttribute(Qt::WA_TranslucentBackground);
+		batteryIcon->setEnabled(sourceVisible);
+		batteryIcon->setVisible(false);
+		batteryIcon->setStyleSheet("margin:0;padding:0;");
+		QIcon icon = QIcon(":/res/images/battery.svg");
+		batteryIcon->setPixmap(icon.pixmap(14, 16));
+
+		batteryText = new QLabel();
+		batteryText->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+		batteryText->setAttribute(Qt::WA_TranslucentBackground);
+		batteryText->setVisible(false);
+		batteryText->setEnabled(sourceVisible);
+
+		boxLayout->addWidget(batteryIcon);
+		boxLayout->addWidget(batteryText);
+		boxLayout->addSpacing(1);
+	}
+
+	#endif
 	boxLayout->addWidget(vis);
 	boxLayout->addSpacing(1);
 	boxLayout->addWidget(lock);
@@ -184,21 +210,9 @@ void SourceTreeItem::paintEvent(QPaintEvent *event)
 	QWidget::paintEvent(event);
 }
 
-void SourceTreeItem::DisconnectSignals()
-{
-	sceneRemoveSignal.Disconnect();
-	itemRemoveSignal.Disconnect();
-	selectSignal.Disconnect();
-	deselectSignal.Disconnect();
-	visibleSignal.Disconnect();
-	lockedSignal.Disconnect();
-	renameSignal.Disconnect();
-	removeSignal.Disconnect();
-}
-
 void SourceTreeItem::Clear()
 {
-	DisconnectSignals();
+	signalHandlers.clear();
 	sceneitem = nullptr;
 }
 
@@ -207,9 +221,7 @@ void SourceTreeItem::ReconnectSignals()
 	if (!sceneitem)
 		return;
 
-	DisconnectSignals();
-
-	/* --------------------------------------------------------- */
+	signalHandlers.clear();
 
 	auto removeItem = [](void *data, calldata_t *cd) {
 		SourceTreeItem *this_ =
@@ -226,7 +238,14 @@ void SourceTreeItem::ReconnectSignals()
 			QMetaObject::invokeMethod(this_, "Clear");
 	};
 
-	auto itemVisible = [](void *data, calldata_t *cd) {
+	obs_scene_t *scene = obs_sceneitem_get_scene(sceneitem);
+	obs_source_t *sceneSource = obs_scene_get_source(scene);
+	signal_handler_t *signal = obs_source_get_signal_handler(sceneSource);
+
+	signalHandlers.emplace_back(signal, "remove", removeItem, this);
+	signalHandlers.emplace_back(signal, "item_remove", removeItem, this);
+	signalHandlers.emplace_back(signal, "item_visible",
+	[](void *data, calldata_t *cd) {
 		SourceTreeItem *this_ =
 			reinterpret_cast<SourceTreeItem *>(data);
 		obs_sceneitem_t *curItem =
@@ -235,10 +254,11 @@ void SourceTreeItem::ReconnectSignals()
 
 		if (curItem == this_->sceneitem)
 			QMetaObject::invokeMethod(this_, "VisibilityChanged",
-						  Q_ARG(bool, visible));
-	};
+				Q_ARG(bool, visible));
+	}, this);
 
-	auto itemLocked = [](void *data, calldata_t *cd) {
+	signalHandlers.emplace_back(signal, "item_locked",
+	[](void *data, calldata_t *cd) {
 		SourceTreeItem *this_ =
 			reinterpret_cast<SourceTreeItem *>(data);
 		obs_sceneitem_t *curItem =
@@ -247,10 +267,11 @@ void SourceTreeItem::ReconnectSignals()
 
 		if (curItem == this_->sceneitem)
 			QMetaObject::invokeMethod(this_, "LockedChanged",
-						  Q_ARG(bool, locked));
-	};
+				Q_ARG(bool, locked));
+	}, this);
 
-	auto itemSelect = [](void *data, calldata_t *cd) {
+	signalHandlers.emplace_back(signal, "item_select",
+	[](void *data, calldata_t *cd) {
 		SourceTreeItem *this_ =
 			reinterpret_cast<SourceTreeItem *>(data);
 		obs_sceneitem_t *curItem =
@@ -258,9 +279,10 @@ void SourceTreeItem::ReconnectSignals()
 
 		if (curItem == this_->sceneitem)
 			QMetaObject::invokeMethod(this_, "Select");
-	};
+		}, this);
 
-	auto itemDeselect = [](void *data, calldata_t *cd) {
+	signalHandlers.emplace_back(signal, "item_deselect",
+	[](void *data, calldata_t *cd) {
 		SourceTreeItem *this_ =
 			reinterpret_cast<SourceTreeItem *>(data);
 		obs_sceneitem_t *curItem =
@@ -268,55 +290,52 @@ void SourceTreeItem::ReconnectSignals()
 
 		if (curItem == this_->sceneitem)
 			QMetaObject::invokeMethod(this_, "Deselect");
-	};
-
-	auto reorderGroup = [](void *data, calldata_t *) {
-		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
-		QMetaObject::invokeMethod(this_->tree, "ReorderItems");
-	};
-
-	obs_scene_t *scene = obs_sceneitem_get_scene(sceneitem);
-	obs_source_t *sceneSource = obs_scene_get_source(scene);
-	signal_handler_t *signal = obs_source_get_signal_handler(sceneSource);
-
-	sceneRemoveSignal.Connect(signal, "remove", removeItem, this);
-	itemRemoveSignal.Connect(signal, "item_remove", removeItem, this);
-	visibleSignal.Connect(signal, "item_visible", itemVisible, this);
-	lockedSignal.Connect(signal, "item_locked", itemLocked, this);
-	selectSignal.Connect(signal, "item_select", itemSelect, this);
-	deselectSignal.Connect(signal, "item_deselect", itemDeselect, this);
+	}, this);
 
 	if (obs_sceneitem_is_group(sceneitem)) {
 		obs_source_t *source = obs_sceneitem_get_source(sceneitem);
-		signal = obs_source_get_signal_handler(source);
-
-		groupReorderSignal.Connect(signal, "reorder", reorderGroup,
-					   this);
+		signalHandlers.emplace_back(
+			obs_source_get_signal_handler(source), "reorder",
+			[](void *data, calldata_t *) {
+				SourceTreeItem *this_ =
+					reinterpret_cast<SourceTreeItem *>(data);
+				QMetaObject::invokeMethod(this_->tree, "ReorderItems");
+			}, this);
 	}
 
-	/* --------------------------------------------------------- */
-
-	auto renamed = [](void *data, calldata_t *cd) {
+	obs_source_t *source = obs_sceneitem_get_source(sceneitem);
+	signal = obs_source_get_signal_handler(source);
+	signalHandlers.emplace_back(signal, "rename",
+	[](void *data, calldata_t *cd) {
 		SourceTreeItem *this_ =
 			reinterpret_cast<SourceTreeItem *>(data);
 		const char *name = calldata_string(cd, "new_name");
 
 		QMetaObject::invokeMethod(this_, "Renamed",
-					  Q_ARG(QString, QT_UTF8(name)));
-	};
-
-	auto removeSource = [](void *data, calldata_t *) {
+			Q_ARG(QString, QT_UTF8(name)));
+	}, this);
+	signalHandlers.emplace_back(signal, "remove",
+	[](void *data, calldata_t *) {
 		SourceTreeItem *this_ =
 			reinterpret_cast<SourceTreeItem *>(data);
-		this_->DisconnectSignals();
+		this_->signalHandlers.clear();
 		this_->sceneitem = nullptr;
-	};
+	}, this);
 
-	obs_source_t *source = obs_sceneitem_get_source(sceneitem);
-	signal = obs_source_get_signal_handler(source);
-	renameSignal.Connect(signal, "rename", renamed, this);
-	removeSignal.Connect(signal, "remove", removeSource, this);
+	#if DROIDCAM_OVERRIDE
+	const char *id = obs_source_get_id(source);
+	if (!id || strcmp(id, DROIDCAM_OBS_ID) != 0)
+		return;
+
+	signalHandlers.emplace_back(signal, "droidcam_source_update",
+	[](void *data, calldata_t *cd) {
+		auto this_ = (SourceTreeItem*)data;
+		const char *battery_level = calldata_string(cd, "battery_level");
+		QMetaObject::invokeMethod(this_, "BatteryChanged",
+			Q_ARG(QString, QT_UTF8(battery_level)),
+			Q_ARG(int, calldata_int(cd, "battery_alert")));
+	}, this);
+	#endif
 }
 
 void SourceTreeItem::mouseDoubleClickEvent(QMouseEvent *event)
@@ -514,6 +533,36 @@ void SourceTreeItem::VisibilityChanged(bool visible)
 	}
 	label->setEnabled(visible);
 	vis->setChecked(visible);
+	#if DROIDCAM_OVERRIDE
+	if (batteryIcon && batteryText) {
+		batteryIcon->setEnabled(visible);
+		batteryText->setEnabled(visible);
+	}
+	#endif
+}
+
+void SourceTreeItem::BatteryChanged(const QString &value, int alert)
+{
+	#if DROIDCAM_OVERRIDE
+	if (value.size()) {
+		batteryText->setText(value);
+		batteryText->setVisible(true);
+		batteryIcon->setVisible(true);
+		if (alert) {
+			OBSBasic *main = OBSBasic::Get();
+			main->SysTrayNotify(QTStr("LowBattery"),
+				label->text(), QSystemTrayIcon::Warning);
+			/*QMetaObject::invokeMethod(main, "SysTrayNotify",
+				Q_ARG(QString, QTStr("LowBattery")),
+				Q_ARG(QString, label->text()),
+				Q_ARG(QVariant, QSystemTrayIcon::Warning));*/
+		}
+	}
+	else {
+		batteryIcon->setVisible(false);
+		batteryText->setVisible(false);
+	}
+	#endif
 }
 
 void SourceTreeItem::LockedChanged(bool locked)
