@@ -476,9 +476,7 @@ add_executable(obs WIN32
 	${obs_UI_HEADERS}
 	${obs_QRC_SOURCES})
 
-if(WIN32)
-	set_target_properties(obs PROPERTIES OUTPUT_NAME "droidcam")
-endif()
+set_target_properties(obs PROPERTIES OUTPUT_NAME "droidcam")
 
 target_link_libraries(obs
 	libobs
