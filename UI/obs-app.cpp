@@ -2050,7 +2050,11 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 		/* --------------------------------------- */
 		/* check and warn if already running       */
 
+		bool cancel_launch = false;
+		bool already_running = false;
+
 #if DROIDCAM_OVERRIDE
+#if defined(_WIN32)
 		// Only allow one instance of the application
 		hSingleInstSem = CreateSemaphore(NULL, 0, 1, L"Global\\DroidCamOBSClient");
 		if (GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -2065,9 +2069,18 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 			// exit
 			return 0;
 		}
+#elif defined(__APPLE__)
+		#error Instance Check Missing
+#elif defined(__linux__)
+		RunningInstanceCheck(already_running);
+		if (already_running) {
+			OBSMessageBox::warning(nullptr, "DroidCam Client",
+				QTStr("AlreadyRunning.DroidCam"));
+			// exit
+			return 0;
+		}
+#endif
 #else
-		bool cancel_launch = false;
-		bool already_running = false;
 
 #if defined(_WIN32)
 		RunOnceMutex rom = GetRunOnceMutex(already_running);

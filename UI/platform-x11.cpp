@@ -66,7 +66,7 @@ void RunningInstanceCheck(bool &already_running)
 	memset(&bindInfo, 0, sizeof(sockaddr_un));
 	bindInfo.sun_family = AF_LOCAL;
 	snprintf(bindInfo.sun_path + 1, sizeof(bindInfo.sun_path) - 1,
-		 "%s %d %s", "/com/obsproject", getpid(),
+		 "%s %d %s", "/com/dev47apps/obsdroidcam", getpid(),
 		 App()->GetVersionString().c_str());
 
 	int bindErr = bind(uniq, (struct sockaddr *)&bindInfo,
@@ -89,7 +89,7 @@ void RunningInstanceCheck(bool &already_running)
 	while (getdelim(&line, &n, ' ', fp) != EOF) {
 		line[strcspn(line, "\n")] = '\0';
 		if (*line == '@') {
-			if (strstr(line, "@/com/obsproject") != NULL) {
+			if (strstr(line, "@/com/dev47apps/obsdroidcam") != NULL) {
 				++obsCnt;
 			}
 		}
