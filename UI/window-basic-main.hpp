@@ -477,8 +477,8 @@ protected:
 
 	int disableOutputsRef = 0;
 
-	inline void OnActivate();
-	inline void OnDeactivate();
+	void OnActivate();
+	void OnDeactivate();
 
 	void AddDropSource(const char *file, DropType image);
 	void AddDropURL(const char *url, QString &name, obs_data_t *settings,

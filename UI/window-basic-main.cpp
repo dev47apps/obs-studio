@@ -6729,7 +6729,7 @@ static inline void ClearProcessPriority()
 	} while (false)
 #endif
 
-inline void OBSBasic::OnActivate()
+void OBSBasic::OnActivate()
 {
 	if (ui->profileMenu->isEnabled()) {
 		ui->profileMenu->setEnabled(false);
@@ -6757,7 +6757,7 @@ inline void OBSBasic::OnActivate()
 extern volatile bool recording_paused;
 extern volatile bool replaybuf_active;
 
-inline void OBSBasic::OnDeactivate()
+void OBSBasic::OnDeactivate()
 {
 #if DROIDCAM_OVERRIDE
 	if (!ui->profileMenu->isEnabled()) {
