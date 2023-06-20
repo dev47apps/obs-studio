@@ -44,7 +44,7 @@ static int loopback_module_load()
 static int loopback_module_add_card()
 {
 	return run_command(
-		"pkexec v4l2loopback-ctl add -n '" OBS_V4L2_CARD_LABEL
+		"pkexec ./v4l2loopback-ctl add -n '" OBS_V4L2_CARD_LABEL
 		"' && sleep 0.5");
 }
 
