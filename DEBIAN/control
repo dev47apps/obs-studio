@@ -1,0 +1,8 @@
+Package: droidcam-client
+Name: DroidCam
+Version: {VER}
+Architecture: amd64
+Maintainer: dev47apps <support@dev47apps.com>
+Description: Use your phone as a webcam.
+Depends: libcurl4 (>= 7.16.2), libgcc-s1 (>= 3.0), libqt5core5a (>= 5.12.2), libqt5gui5 (>= 5.8.0) | libqt5gui5-gles (>= 5.8.0), libqt5network5 (>= 5.0.2), libqt5svg5 (>= 5.6.0), libqt5widgets5 (>= 5.11.0), libqt5xml5 (>= 5.0.2), libstdc++6 (>= 9), libspeexdsp1
+Recommends: adb, usbmuxd, v4l2loopback-dkms

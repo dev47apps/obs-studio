@@ -80,8 +80,10 @@ void OBSBasicDroidCam::DroidCam_Disconnect(OBSSource source) {
 
 	if (!DroidCam_Cycle_Remote(source) && !obs_source_showing(source)) {
 		blog(LOG_INFO, "DroidCam_Disconnect: CLEAR URL");
+		#ifdef BROWSER_AVAILABLE
 		QCefWidget *browser = (QCefWidget *)remoteDock->widget();
 		if (browser) browser->setURL("about:blank");
+		#endif
 		last_remote_url = "";
 	}
 

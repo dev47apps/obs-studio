@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=DroidCam Client (New)
+Comment=Use your phone as a webcam
+Icon=/opt/droidcam-obs-client/icon.png
+Path=/opt/droidcam-obs-client/bin/64bit
+Exec=/opt/droidcam-obs-client/bin/64bit/droidcam
+Terminal=false
+Type=Application
+Categories=Video;AudioVideo;
+Version=1.0
+
