@@ -27,7 +27,14 @@ bool OBSBasicDroidCam::nativeEvent(const QByteArray &eventType, void *message, l
 }
 #endif
 
+#include <json11.hpp>
+#include "remote-text.hpp"
+
 const char *DROIDCAM_OBS_ID = "droidcam_obs";
+const char MIXPANEL_API_URL[] = {
+	'h', 't','t','p','s',':','/','/',
+	'a','p','i','.','m','i','x','p','a','n','e','l','.','c','o','m',
+	'/','t','r','a','c','k', 0 };
 
 // TODO reduce logging post-beta
 // TODO add "Toggle Controls" hotkey
@@ -253,6 +260,70 @@ void OBSBasicDroidCam::OBSInit() {
 		}
 	}
 	#endif // BROWSER_AVAILABLE
+
+	if (strlen(MIXPANEL_TOKEN)) {
+		using namespace json11;
+
+		const char* Version =
+			obs_get_version_string();
+		const char *Language =
+			config_get_string(GetGlobalConfig(), "General", "Language");
+		const char *themeName =
+			config_get_string(GetGlobalConfig(), "General", "CurrentTheme2");
+		if (!themeName)
+			themeName = config_get_string(GetGlobalConfig(), "General", "CurrentTheme");
+		if (!themeName)
+			themeName = config_get_string(GetGlobalConfig(), "General", "Theme");
+		if (!themeName)
+			themeName = DEFAULT_THEME;
+		if (!themeName)
+			themeName = "Dark";
+
+		const char *VideoFPS =
+			config_get_string(basicConfig, "Video", "FPSCommon");
+		std::string VideoSize =
+			std::to_string((uint32_t)config_get_uint(basicConfig, "Video", "BaseCX")) +
+			"x" +
+			std::to_string((uint32_t)config_get_uint(basicConfig, "Video", "BaseCY"));
+
+		const Json client_open = Json::object{
+			{"event", "client_open"},
+			{"properties", Json::object{
+				{"Version", Version},
+				{"Language", Language},
+				{"VideoSize", VideoSize},
+				{"VideoFPS", VideoFPS},
+				{"Theme", themeName},
+				{"token", MIXPANEL_TOKEN},
+				{"$os",
+				#ifdef _WIN32
+					"Windows"
+				#elif __APPLE__
+					"macOS"
+				#elif __linux__
+					"Linux"
+				#endif
+				},
+			}},
+		};
+
+		long responseCode;
+		std::vector<std::string> headers;
+		std::string error;
+		std::string out;
+		std::string data;
+
+		data += "[";
+		data += client_open.dump();
+		data += "]";
+		// blog(LOG_DEBUG, "Analytics: data='%s'", data.c_str());
+
+		if (!GetRemoteFile(MIXPANEL_API_URL, out, error, &responseCode,
+			"application/json", "POST", data.c_str(), headers, nullptr, 30))
+		{
+			blog(LOG_WARNING, "Analytics: Failed: '%s'", error.c_str());
+		}
+	}
 }
 
 void OBSBasicDroidCam::EnumActiveSources(void) {
