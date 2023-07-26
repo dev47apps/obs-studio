@@ -6756,6 +6756,7 @@ void OBSBasic::OnActivate()
 		ui->autoConfigure->setEnabled(false);
 		App()->IncrementSleepInhibition();
 		UpdateProcessPriority();
+		blog(LOG_INFO, "OnActivate +++");
 
 		if (trayIcon && trayIcon->isVisible()) {
 #ifdef __APPLE__
@@ -6783,6 +6784,7 @@ void OBSBasic::OnDeactivate()
 		ui->profileMenu->setEnabled(true);
 		App()->DecrementSleepInhibition();
 		ClearProcessPriority();
+		blog(LOG_INFO, "OnDeactivate ---");
 	}
 #else
 	if (!outputHandler->Active() && !ui->profileMenu->isEnabled()) {
