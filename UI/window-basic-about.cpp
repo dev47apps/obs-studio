@@ -18,7 +18,6 @@ OBSAbout::OBSAbout(QWidget *parent) : QDialog(parent), ui(new Ui::OBSAbout)
 	ver += LIBOBS_API_MAJOR_VER + "." + LIBOBS_API_MINOR_VER + "." +
 		LIBOBS_API_PATCH_VER;
 #endif
-	ver += " (beta)";
 	ui->name_label->setText(ver);
 
 	ui->visitDroidcam_label->setText("Visit&nbsp;<a href='https://beta.droidcam.app'>droidcam.app</a>");
