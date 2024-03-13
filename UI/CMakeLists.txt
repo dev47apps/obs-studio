@@ -430,8 +430,9 @@ endif()
 qt5_wrap_ui(obs_UI_HEADERS ${obs_UI})
 qt5_add_resources(obs_QRC_SOURCES ${obs_QRC})
 
+#d47
 add_executable(obs WIN32
-	obs.manifest
+	droidcam-obs.manifest
 	${obs_SOURCES}
 	${obs_HEADERS}
 	${obs_importers_SOURCES}
@@ -439,17 +440,7 @@ add_executable(obs WIN32
 	${obs_UI_HEADERS}
 	${obs_QRC_SOURCES})
 
-if(WIN32)
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-		set(_output_suffix "64")
-	else()
-		set(_output_suffix "32")
-	endif()
-
-	set_target_properties(obs
-		PROPERTIES
-			OUTPUT_NAME "obs${_output_suffix}")
-endif()
+set_target_properties(obs PROPERTIES OUTPUT_NAME "droidcam")
 
 target_link_libraries(obs
 	libobs
@@ -475,7 +466,11 @@ if (UNIX AND UNIX_STRUCTURE AND NOT APPLE)
 	add_subdirectory(xdg-data)
 endif()
 
+#d47
+if(DROIDCAM_OVERRIDE)
+else()
 add_subdirectory(frontend-plugins)
 if(WIN32)
 	add_subdirectory(win-update/updater)
+endif()
 endif()
