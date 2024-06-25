@@ -114,7 +114,8 @@ struct rtmp_stream {
 	long dbr_inc_bitrate;
 	bool dbr_enabled;
 
-	enum video_id_t video_codec;
+	enum audio_id_t audio_codec[MAX_OUTPUT_AUDIO_ENCODERS];
+	enum video_id_t video_codec[MAX_OUTPUT_VIDEO_ENCODERS];
 
 	RTMP rtmp;
 

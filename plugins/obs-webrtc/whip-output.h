@@ -37,13 +37,14 @@ private:
 	void StartThread();
 	void SendDelete();
 	void StopThread(bool signal);
+	void ParseLinkHeader(std::string linkHeader,
+			     std::vector<rtc::IceServer> &iceServers);
 
 	void Send(void *data, uintptr_t size, uint64_t duration,
 		  std::shared_ptr<rtc::Track> track,
 		  std::shared_ptr<rtc::RtcpSrReporter> rtcp_sr_reporter);
 
 	obs_output_t *output;
-	bool is_av1;
 
 	std::string endpoint_url;
 	std::string bearer_token;

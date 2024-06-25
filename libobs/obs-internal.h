@@ -756,7 +756,6 @@ struct obs_source {
 	volatile bool timing_set;
 	volatile uint64_t timing_adjust;
 	uint64_t resample_offset;
-	uint64_t last_audio_ts;
 	uint64_t next_audio_ts_min;
 	uint64_t next_audio_sys_ts_min;
 	uint64_t last_frame_ts;
@@ -1081,6 +1080,15 @@ struct caption_text {
 	struct caption_text *next;
 };
 
+struct caption_track_data {
+	struct caption_text *caption_head;
+	struct caption_text *caption_tail;
+	pthread_mutex_t caption_mutex;
+	double caption_timestamp;
+	double last_caption_timestamp;
+	struct deque caption_data;
+};
+
 struct pause_data {
 	pthread_mutex_t mutex;
 	uint64_t last_video_ts;
@@ -1172,12 +1180,8 @@ struct obs_output {
 	struct video_scale_info video_conversion;
 	struct audio_convert_info audio_conversion;
 
-	pthread_mutex_t caption_mutex;
-	double caption_timestamp;
-	struct caption_text *caption_head;
-	struct caption_text *caption_tail;
-
-	struct deque caption_data;
+	// captions are output per track
+	struct caption_track_data *caption_tracks[MAX_OUTPUT_VIDEO_ENCODERS];
 
 	bool valid;
 
@@ -1238,10 +1242,15 @@ struct encoder_callback {
 	void *param;
 };
 
-struct encoder_group {
+struct obs_encoder_group {
 	pthread_mutex_t mutex;
-	uint32_t encoders_added;
-	uint32_t encoders_started;
+	/* allows group to be destroyed even if some encoders are active */
+	bool destroy_on_stop;
+
+	/* holds strong references to all encoders */
+	DARRAY(struct obs_encoder *) encoders;
+
+	uint32_t num_encoders_started;
 	uint64_t start_timestamp;
 };
 
@@ -1310,7 +1319,7 @@ struct obs_encoder {
 	uint64_t start_ts;
 
 	/* track encoders that are part of a gop-aligned multi track group */
-	struct encoder_group *encoder_group;
+	struct obs_encoder_group *encoder_group;
 
 	pthread_mutex_t outputs_mutex;
 	DARRAY(obs_output_t *) outputs;

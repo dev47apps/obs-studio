@@ -445,7 +445,8 @@ void OBSBasic::SetTransition(OBSSource transition)
 	ui->transitionDurationLabel->setVisible(!fixed);
 	ui->transitionDuration->setVisible(!fixed);
 
-	bool configurable = obs_source_configurable(transition);
+	bool configurable = transition ? obs_source_configurable(transition)
+				       : false;
 	ui->transitionRemove->setEnabled(configurable);
 	ui->transitionProps->setEnabled(configurable);
 
@@ -976,7 +977,7 @@ int OBSBasic::GetTbarPosition()
 	return tBar->value();
 }
 
-void OBSBasic::on_modeSwitch_clicked()
+void OBSBasic::TogglePreviewProgramMode()
 {
 	SetPreviewProgramMode(!IsPreviewProgramMode());
 }
@@ -1184,6 +1185,8 @@ QMenu *OBSBasic::CreateVisibilityTransitionMenu(bool visible)
 		if (id.isNull() || id.isEmpty()) {
 			obs_sceneitem_set_transition(sceneItem, visible,
 						     nullptr);
+			obs_sceneitem_set_transition_duration(sceneItem,
+							      visible, 0);
 		} else {
 			OBSSource tr = obs_sceneitem_get_transition(sceneItem,
 								    visible);
@@ -1605,8 +1608,8 @@ void OBSBasic::SetPreviewProgramMode(bool enabled)
 	if (IsPreviewProgramMode() == enabled)
 		return;
 
-	ui->modeSwitch->setChecked(enabled);
 	os_atomic_set_bool(&previewProgramMode, enabled);
+	emit PreviewProgramModeChanged(enabled);
 
 	if (IsPreviewProgramMode()) {
 		if (!previewEnabled)

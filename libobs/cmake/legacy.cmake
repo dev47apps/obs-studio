@@ -176,6 +176,8 @@ target_sources(
           util/bitstream.h
           util/bmem.c
           util/bmem.h
+          util/buffered-file-serializer.c
+          util/buffered-file-serializer.h
           util/c99defs.h
           util/cf-lexer.c
           util/cf-lexer.h
@@ -198,6 +200,7 @@ target_sources(
           util/profiler.c
           util/profiler.h
           util/profiler.hpp
+          util/pipe.c
           util/pipe.h
           util/serializer.h
           util/sse-intrin.h
